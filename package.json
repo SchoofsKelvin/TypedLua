@@ -4,9 +4,9 @@
     "description": "",
     "dependencies": {},
     "devDependencies": {
-        "@types/node": "",
-        "typescript": "",
-        "ts-node": ""
+        "@types/node": "^9.6.1",
+        "typescript": "^2.8.1",
+        "ts-node": "^5.0.1"
     },
     "main": "lib/index.js",
     "scripts": {
