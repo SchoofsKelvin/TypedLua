@@ -1,0 +1,41 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Launch (compiled)",
+            "program": "${workspaceFolder}\\lib\\index.js",
+            "outFiles": [
+                "${workspaceFolder}/lib/**",
+                "${workspaceFolder}/src/**"
+            ],
+            "protocol": "inspector",
+            "args": []
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Launch (ts-node)",
+            "runtimeArgs": ["-r", "ts-node/register", "${workspaceFolder}\\lib\\index.js"],
+            "outFiles": [
+                "${workspaceFolder}/lib/**",
+                "${workspaceFolder}/src/**"
+            ],
+            "protocol": "inspector",
+            "args": []
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Interactive ts-node",
+            "runtimeArgs": ["-i", "-r", "ts-node/register"],
+            "console": "integratedTerminal",
+            "protocol": "inspector",
+            "args": []
+        }
+    ]
+}
