@@ -35,6 +35,7 @@ export class Parser {
   protected currrentBlock?: ls.Block;
   protected currentChunk?: ls.Chunk;
   constructor(protected source: string) {
+    source = source.replace(/\r/, '');
     let charIndex = 0;
     for (const char of source) {
       if (char === '\n') {
@@ -42,6 +43,7 @@ export class Parser {
       }
       charIndex += 1;
     }
+    this.charToLine.push(charIndex);
   }
   /* PUBLIC METHODS */
   public parse() {
@@ -50,7 +52,7 @@ export class Parser {
     return ch;
   }
   public line(index: number = this.index) {
-    return this.charToLine.findIndex(v => v >= index);
+    return this.charToLine.findIndex(v => v > index);
   }
   /* PARSER STUFF */
   protected regexp(pattern: string | RegExp) {
@@ -215,8 +217,8 @@ export class Parser {
     return expr;
   }
   protected stat(): ls.Expression | null {
-    this.trim();
-    const [keyword, index] = this.peek(this.keyword);
+    const index = this.trim();
+    const keyword = this.keyword();
     const line = this.line();
     if (!keyword) {
       this.index = index;
@@ -355,8 +357,8 @@ export class Parser {
     return this.postExpression(expr);
   }
   protected postExpression(prev: ls.Expression): ls.Expression {
-    this.trim();
-    const [binop, index] = this.peek(this.binop);
+    const index = this.trim();
+    const binop = this.binop();
     const isPrefix = IS_PREFIX.includes(prev.type);
     if (binop) {
       const right = assert(this.expression(), 'Expected an expression');
