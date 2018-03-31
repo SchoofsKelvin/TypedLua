@@ -1,13 +1,6 @@
 
 /* Constants (+ their types)*/
 
-export enum KeywordOld {
-  'do', 'end', 'while', 'repeat', 'until',
-  'if', 'then', 'elseif', 'else', 'for', 'in',
-  'function', 'local', 'return', 'break',
-  'false', 'true', 'nil', 'not', 'and', 'or',
-}
-
 export enum Keyword {
   do = 'DO',
   end = 'END',
