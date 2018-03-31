@@ -158,12 +158,12 @@ export class Parser {
       // if (last) break;
       stat = this.stat();
     }
+    const index = this.trim();
     if (this.keyword('break')) {
-      stats.push({ type: 'Break', line: this.line() } as ls.Break);
+      stats.push({ index, type: 'Break' } as ls.Break);
     } else if (this.keyword('return')) {
-      const line = this.line();
       stats.push({
-        line,
+        index,
         type: 'Return',
         expressions: this.expList() || [],
       } as ls.Return);
@@ -183,29 +183,31 @@ export class Parser {
   }
   /* MORE PRECISE SYNTAX PARSING */
   protected functionName() {
-    const line = this.line();
+    let index = this.trim();
     let name = this.name();
     assert(name, 'Expected a name');
     const scope = this.scope as ls.Scope;
     let expr: ls.Variable | ls.Field | ls.Method = {
-      line, name, scope,
+      index, name, scope,
       type: 'Variable',
       scopePosition: scope.locals.length,
     } as ls.Variable;
     while (this.string('.')) {
+      index = this.trim();
       name = this.name();
       assert(name, 'Expected a name');
       expr = {
-        line, name,
+        index, name,
         type: 'Field',
         base: expr,
       } as ls.Field;
     }
     if (this.string(':')) {
+      index = this.trim();
       name = this.name();
       assert(name, 'Expected a name');
       expr = {
-        line, name,
+        index, name,
         type: 'Method',
         base: expr,
       } as ls.Method;
@@ -213,46 +215,47 @@ export class Parser {
     return expr;
   }
   protected stat(): ls.Expression | null {
-    const [keyword, old] = this.peek(this.keyword);
+    this.trim();
+    const [keyword, index] = this.peek(this.keyword);
     const line = this.line();
     if (!keyword) {
-      this.index = old;
-      const [expr, o] = this.peek(this.expression);
+      this.index = index;
+      const [expr] = this.peek(this.expression);
       if (expr && (expr.type === 'FunctionCall' || expr.type === 'FunctionSelfCall')) {
         return expr;
       }
-      this.index = o;
+      this.index = index;
       const variables = this.varList();
       if (variables) {
         assert(this.string('='), 'Expected `=`');
         const expressions = this.expList();
         assert(this.expression, 'Expected an expression');
         return {
-          line, variables, expressions,
+          index, variables, expressions,
           type: 'Assignment',
         } as ls.Assignment;
       }
-      this.index = old;
+      this.index = index;
       return null;
     }
     switch (keyword as ls.Keyword) {
       case ls.Keyword.do: {
         const [block] = this.block();
         assert(this.keyword('end'),`Expected \`end\` to close \`do\` (line ${line})`);
-        return { line, block, type: 'Do' } as ls.Do;
+        return { index, block, type: 'Do' } as ls.Do;
       }
       case ls.Keyword.while: {
         const condition = this.expression();
         assert(this.keyword('do'), 'Expected `do`');
         const [block] = this.block();
         assert(this.keyword('end'),`Expected \`end\` to close \`while\` (line ${line})`);
-        return { line, condition, block, type: 'While' } as ls.While;
+        return { index, condition, block, type: 'While' } as ls.While;
       }
       case ls.Keyword.repeat: {
         const [block] = this.block();
         assert(this.keyword('end'),`Expected \`until\` to close \`repeat\` (line ${line})`);
         const condition = this.expression();
-        return { line, condition, block, type: 'Repeat' } as ls.Repeat;
+        return { index, condition, block, type: 'Repeat' } as ls.Repeat;
       }
       case ls.Keyword.if: {
         let expr = assert(this.expression(), 'Expected an expression');
@@ -266,7 +269,7 @@ export class Parser {
         const otherwise = this.keyword('else') && this.block()[0];
         const last = blocks.length === 1 ? 'if' : 'elseif';
         assert(this.keyword('end'),`Expected \`end\` to close \`${last}\` (line ${line})`);
-        return { line, blocks, otherwise, type: 'If' } as ls.If;
+        return { index, blocks, otherwise, type: 'If' } as ls.If;
       }
       case ls.Keyword.for: {
         const names = assert(this.nameList(), 'Expected a name');
@@ -279,7 +282,7 @@ export class Parser {
           const innerblock = this.block()[0];
           assert(this.keyword('end'),`Expected \`end\` to close \`for\` (line ${line})`);
           return {
-            line, limit, step,
+            index, limit, step,
             type: 'NumericFor',
             block: innerblock,
             name: names[0],
@@ -292,7 +295,7 @@ export class Parser {
         const block = this.block()[0];
         assert(this.keyword('end'),`Expected \`end\` to close \`for\` (line ${line})`);
         return {
-          line, block, names, expressions,
+          index, block, names, expressions,
           type: 'GenericFor',
         } as ls.GenericFor;
       }
@@ -303,6 +306,7 @@ export class Parser {
         if (name.type === 'Method') {
           func.chunk.scope.locals.unshift('self');
         }
+        func.index = index;
         return func;
       }
       case ls.Keyword.local: {
@@ -311,8 +315,9 @@ export class Parser {
           const locals = (this.scope as ls.Scope).locals;
           locals.push(name);
           const func = this.funcBody();
+          func.index = index;
           func.variable = {
-            line, name,
+            index, name,
             type: 'Variable',
             scope: this.scope,
             scopePosition: locals.length,
@@ -326,18 +331,18 @@ export class Parser {
         const locStart = scope.locals.length;
         scope.locals = [...scope.locals, ...vars];
         const variables = vars.map((v, k) => ({
-          line, scope,
+          index, scope,
           type: 'Variable',
           scopePosition: locStart + k,
         } as ls.Variable));
         return {
-          line, variables, expressions,
+          index, variables, expressions,
           type: 'Assignment',
           locals: true,
         } as ls.Assignment;
       }
     }
-    this.index = old;
+    this.index = index;
     return null;
   }
   protected checkBinop(expr: ls.BinaryOp) {
@@ -350,13 +355,13 @@ export class Parser {
     return this.postExpression(expr);
   }
   protected postExpression(prev: ls.Expression): ls.Expression {
-    let line = this.line();
-    const [binop, old] = this.peek(this.binop);
+    this.trim();
+    const [binop, index] = this.peek(this.binop);
     const isPrefix = IS_PREFIX.includes(prev.type);
     if (binop) {
       const right = assert(this.expression(), 'Expected an expression');
       return this.checkBinop({
-        line, right,
+        index, right,
         type: 'BinaryOp',
         operation: binop,
         priority: ls.BINARY_OP_PRIORTY[binop] as number,
@@ -364,11 +369,11 @@ export class Parser {
       });
     } else if (this.string('[')) {
       assert(isPrefix, 'Unexpected symbol `[`');
-      line = this.line();
+      const line = this.line();
       const expression = assert(this.expression(), 'Expected an expression');
       assert(this.string(']'),`Expected \`]\` to close \`[\` (line ${line})`);
       return this.postExpression({
-        line, expression,
+        index, expression,
         type: 'Field',
         base: prev,
       });
@@ -376,7 +381,7 @@ export class Parser {
       assert(isPrefix, 'Unexpected symbol `.`');
       const name = assert(this.name(), 'Expected a name');
       return this.postExpression({
-        line, name,
+        index, name,
         type: 'Field',
         base: prev,
       });
@@ -384,7 +389,7 @@ export class Parser {
       assert(isPrefix, 'Unexpected symbol `:`');
       const name = assert(this.name(), 'Expected a name');
       return this.postExpression({
-        line, name,
+        index, name,
         type: 'Method',
         base: prev,
       });
@@ -393,7 +398,7 @@ export class Parser {
     if (args) {
       if (prev.type === 'Method') {
         return this.postExpression({
-          line,
+          index,
           type: 'FunctionSelfCall',
           arguments: args,
           name: prev.name,
@@ -402,7 +407,7 @@ export class Parser {
       }
       assert(isPrefix, 'Unexpected symbol');
       return this.postExpression({
-        line,
+        index,
         type: 'FunctionCall',
         target: prev,
         arguments: args,
@@ -411,60 +416,62 @@ export class Parser {
     return prev;
   }
   protected expression(): ls.Expression | null {
+    const index = this.trim();
     const line = this.line();
-    if (this.string('(')) {
+    if (this.string('(', true)) {
       const expression = assert(this.expression(), 'Expected an expression');
       assert(this.string(')'),`Expected \`)\` to close \`(\` (line ${line})`);
       return this.postExpression({
-        line, expression,
+        index, expression,
         type: 'Brackets',
       });
-    } else if (this.string('...')) {
-      return this.postExpression({ line, type: 'Vararg' });
+    } else if (this.string('...', true)) {
+      return this.postExpression({ index, type: 'Vararg' });
     } else if (this.keyword('function')) {
       return this.postExpression(this.funcBody());
     }
-    let [op, old]: [any, number] = this.peek(this.match, /[-#]/);
-    [op, old] = [op || this.keyword('not'), old];
+    let [op]: any = this.peek(this.match, /[-#]/, true);
+    op = op || this.keyword('not');
     if (op) {
       const expression = assert(this.expression(), 'Expected an expression');
       return this.postExpression({
-        line, expression,
+        index, expression,
         type: 'UnaryOp',
         operation: op[0] as ls.UnaryOperation,
         priority: 2,
       });
     }
-    this.index = old;
+    this.index = index;
     const keyword = this.keyword();
     switch (keyword) {
       case ls.Keyword.nil:
-        return this.postExpression({ line, type: 'Constant', value: null });
+        return this.postExpression({ index, type: 'Constant', value: null });
       case ls.Keyword.true:
-        return this.postExpression({ line, type: 'Constant', value: true });
+        return this.postExpression({ index, type: 'Constant', value: true });
       case ls.Keyword.false: {
-        return this.postExpression({ line, type: 'Constant', value: false });
+        return this.postExpression({ index, type: 'Constant', value: false });
       }
     }
-    this.index = old;
+    this.index = index;
     const exp = this.number() || this.stringConstant() || this.table();
     if (exp) return this.postExpression(exp);
     const [name] = this.peek(this.name);
     if (name) {
       const scope = this.scope as ls.Scope;
       return this.postExpression({
-        line, name, scope,
+        index, name, scope,
         type: 'Variable',
         scopePosition: scope.locals.length,
       });
     }
-    this.index = old;
+    this.index = index;
     return null;
   }
   protected varList() {
-    const [v,old] = this.peek(this.expression);
+    const index = this.trim();
+    const v = this.expression();
     if (!v || v.type !== 'Field' && v.type !== 'Variable') {
-      this.index = old;
+      this.index = index;
       return null;
     }
     const vars = [v];
@@ -476,12 +483,13 @@ export class Parser {
     return vars;
   }
   protected number(): ls.Constant | null {
-    if (this.string('0x')) {
+    const index = this.trim();
+    if (this.string('0x', true)) {
       const m = assert(this.match(/\w+/), 'Malformed number');
       const v = assert(parseInt(m[0], 16), 'Malformed number');
-      return { type: 'Constant', line: this.line(), value: v };
+      return { index, type: 'Constant', value: v };
     }
-    let value = stringFromMatch(this.match(/\d+/));
+    let value = stringFromMatch(this.match(/\d+/, true));
     if (this.string('.', true)) {
       const n = assert(this.match(/\d+/,true), 'Malformed number');
       value = `${(value ? value[0] : '')}.${n}`;
@@ -492,11 +500,10 @@ export class Parser {
       const n = assert(this.match(/[-\+]?\d+/,true), 'Malformed number');
       value = `${value}e${n}`;
     }
-    return { type: 'Constant', line: this.line(), value: parseInt(value, 10) };
+    return { index, type: 'Constant', value: parseInt(value, 10) };
   }
   protected stringConstant(): ls.Constant | null {
     this.trim();
-    const line = this.line();
     let q = stringFromMatch(this.match(/['"]/, true));
     if (q) {
       const [p, str] = [this.index, this.source];
@@ -516,7 +523,7 @@ export class Parser {
           esc = true;
         } else if (c === q) {
           this.index = i + 1;
-          return { line, value, type: 'Constant' };
+          return { value, type: 'Constant', index: p - 1 };
         } else {
           value += c;
         }
@@ -529,7 +536,11 @@ export class Parser {
     const pos = this.index;
     const [a,b] = assert(this.find(`]${'='.repeat(eqs)}]`, true), 'Unfinished string');
     this.index = b + 1;
-    return { line, type: 'Constant', value: this.source.substring(pos, a) };
+    return {
+      type: 'Constant',
+      index: pos - eqs - 2,
+      value: this.source.substring(pos, a),
+    };
   }
   protected binop(): ls.BinaryOperation | null {
     const kw = this.keyword('or') || this.keyword('and');
@@ -549,18 +560,19 @@ export class Parser {
       const value = assert(this.expression(), 'Expected an expression');
       return { key, value };
     }
-    const [name, old] = this.peek(this.name);
+    const index = this.trim();
+    const name = this.name();
     if (name && this.string('=')) {
-      const line = this.line();
       const value = assert(this.expression(), 'Expected an expression');
-      return { value, key: { line, type: 'Constant', value: name } };
+      return { value, key: { index, type: 'Constant', value: name } };
     }
-    this.index = old;
+    this.index = index;
     const v = this.expression();
     return v ? { value: v } : null;
   }
   protected table(): ls.Table | null {
-    if (!this.string('{')) return null;
+    const index = this.trim();
+    if (!this.string('{', true)) return null;
     const line = this.line();
     const content: ls.TableEntry[] = [];
     let [sep, entry] = [true, this.tableEntry()];
@@ -571,7 +583,7 @@ export class Parser {
       entry = this.tableEntry();
     }
     assert(this.string('}'),`Expected \`}\` to close \`{\` (line ${line})`);
-    return { line, content, type: 'Table' };
+    return { index, content, type: 'Table' };
   }
   protected expList(): ls.Expression[] | null {
     const expr = this.expression();
@@ -624,6 +636,7 @@ export class Parser {
     return this.string('...') ? ['...'] : [];
   }
   protected funcBody(): ls.FunctionExpr {
+    const index = this.index;
     assert(this.string('('), 'Expected `(`');
     const parameters = this.parList();
     assert(this.string(')'), 'Expected `)`');
@@ -631,7 +644,7 @@ export class Parser {
     const chunk = this.chunk();
     assert(this.keyword('end'),`Expected \`end\` for function (line ${line})`);
     return {
-      line, chunk, parameters,
+      index, chunk, parameters,
       type: 'Function',
       local: false,
     };

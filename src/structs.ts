@@ -70,7 +70,7 @@ export interface FuncBody extends Chunk {
 
 export interface ExpressionBase {
   type: string;
-  line: number;
+  index: number;
 }
 
 export type Expression = Vararg | Break | Return | Variable
