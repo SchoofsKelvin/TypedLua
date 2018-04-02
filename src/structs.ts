@@ -83,6 +83,11 @@ export interface TableEntry {
   value: Expression;
 }
 
+/**
+ * Used in {@link If}
+ */
+export type IfBlock = [Expression, Block, number];
+
 export type Block = Expression[];
 
 /* Expression types (extending Expression) */
@@ -129,7 +134,7 @@ export interface Repeat extends ExpressionBase {
 }
 export interface If extends ExpressionBase {
   type: 'If';
-  blocks: [Expression, Block][];
+  blocks: IfBlock[];
   otherwise?: Block;
 }
 

@@ -213,7 +213,7 @@ export class Parser {
     return expr;
   }
   protected stat(): ls.Expression | null {
-    const index = this.trim();
+    let index = this.trim();
     const keyword = this.keyword();
     const line = this.line();
     if (!keyword) {
@@ -258,11 +258,13 @@ export class Parser {
       case ls.Keyword.if: {
         let expr = assert(this.expression(), 'Expected an expression');
         assert(this.keyword('then'), 'Expected `then`');
-        const blocks: [ls.Expression, ls.Block][] = [[expr, this.block()[0]]];
+        const blocks: ls.IfBlock[] = [[expr, this.block()[0], index]];
+        index = this.trim();
         while (this.keyword('elseif')) {
           expr = assert(this.expression(), 'Expected an expression');
           assert(this.keyword('then'), 'Expected `then`');
-          blocks.push([expr, this.block()[0]]);
+          blocks.push([expr, this.block()[0], index]);
+          index = this.trim();
         }
         const otherwise = this.keyword('else') && this.block()[0];
         const last = blocks.length === 1 ? 'if' : 'elseif';
