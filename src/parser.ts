@@ -45,16 +45,16 @@ export class Parser {
     this.charToLine.push(charIndex);
   }
   /* PUBLIC METHODS */
-  public parse() {
+  public parse(): ls.MainChunk {
     const ch = this.chunk();
     assert(this.index === this.source.length, 'Unexpected symbol');
-    return ch;
+    return { ...ch, lines: this.charToLine };
   }
-  public line(index: number = this.index) {
+  public line(index: number = this.index): number {
     return this.charToLine.findIndex(v => v > index);
   }
   /* PARSER STUFF */
-  protected regexp(pattern: string | RegExp) {
+  protected regexp(pattern: string | RegExp): RegExp {
     const reg = new RegExp(pattern as RegExp, 'my');
     reg.lastIndex = this.index;
     return reg;
@@ -71,13 +71,13 @@ export class Parser {
     const old = this.index;
     return [method.apply(this, args), old];
   }
-  protected actualTrim() {
+  protected actualTrim(): number {
     const reg = this.regexp(/\s+/);
     const mat = reg.exec(this.source);
     if (!mat) return this.index;
     return this.index += mat[0].length;
   }
-  protected comment() {
+  protected comment(): boolean {
     this.actualTrim();
     const mat = this.match(/--\[=*\[/, true);
     if (mat) {
@@ -93,12 +93,13 @@ export class Parser {
       this.index = end[1] + 1;
       return true;
     }
+    return false;
   }
-  protected trim() {
+  protected trim(): number {
     while (this.comment());
     return this.actualTrim();
   }
-  protected string(str: string, noTrim = false) {
+  protected string(str: string, noTrim = false): string | null {
     const i = noTrim ? this.index : this.trim();
     if (this.source.startsWith(str, i)) {
       this.index = i + str.length;
@@ -106,7 +107,7 @@ export class Parser {
     }
     return null;
   }
-  protected match(pat: string | RegExp, noTrim = false) {
+  protected match(pat: string | RegExp, noTrim = false): RegExpExecArray | null {
     const reg = new RegExp(pat as RegExp, 'my');
     reg.lastIndex = noTrim ? this.index : this.trim();
     const mat = reg.exec(this.source);
@@ -125,7 +126,7 @@ export class Parser {
     if (!mat) return null;
     return [mat.index, mat.index + mat[0].length - 1];
   }
-  protected keyword(word?: string) {
+  protected keyword(word?: string): ls.Keyword | null {
     const peek = this.peek(this.match, /\w+/);
     const match = peek[0];
     if (match) {
@@ -138,10 +139,6 @@ export class Parser {
     }
     this.index = peek[1];
     return null;
-  }
-  /* ERROR HANDLING */
-  protected assert(condition: any, errorMessage: string, ...args: any[]) {
-    if (!condition) throw new Error(util.format(errorMessage, ...args));
   }
   /* SYNTAX PARSING */
   protected block(): [ls.Block, ls.Scope] {
@@ -173,7 +170,7 @@ export class Parser {
     this.scope = scope.parent;
     return [stats, scope];
   }
-  protected chunk() {
+  protected chunk(): ls.Chunk {
     const prev = this.currentChunk;
     const chunk = this.currentChunk = {} as ls.Chunk;
     const [block, scope] = this.block();
@@ -183,7 +180,7 @@ export class Parser {
     return chunk;
   }
   /* MORE PRECISE SYNTAX PARSING */
-  protected functionName() {
+  protected functionName(): ls.Variable | ls.Field | ls.Method {
     let index = this.trim();
     let name = this.name();
     assert(name, 'Expected a name');
@@ -346,7 +343,7 @@ export class Parser {
     this.index = index;
     return null;
   }
-  protected checkBinop(expr: ls.BinaryOp) {
+  protected checkBinop(expr: ls.BinaryOp): ls.Expression {
     const left = expr.left as ls.UnaryOp | ls.BinaryOp;
     if (left.priority) {
       if (left.priority < expr.priority) {
@@ -468,7 +465,7 @@ export class Parser {
     this.index = index;
     return null;
   }
-  protected varList() {
+  protected varList(): (ls.Variable | ls.Field)[] | null {
     const index = this.trim();
     const v = this.expression();
     if (!v || v.type !== 'Field' && v.type !== 'Variable') {
@@ -604,14 +601,14 @@ export class Parser {
     assert(this.string(')'),`Expected \`)\` to close \`(\` (line ${line})`);
     return res || [];
   }
-  protected name() {
+  protected name(): string | null {
     const peek = this.peek(this.match, /[_a-zA-Z][_\w]*/);
     const match = peek[0];
     if (match && ls.Keyword[match[0] as any] === undefined) return match[0];
     this.index = peek[1];
     return null;
   }
-  protected nameList(vararg = false) {
+  protected nameList(vararg = false): string[] | null {
     let name = this.name();
     if (!name) return null;
     const names = [name];
@@ -625,7 +622,7 @@ export class Parser {
     }
     return names;
   }
-  protected parList() {
+  protected parList(): string[] {
     const nameList = this.nameList(true);
     if (nameList) {
       if (this.string(',')) {

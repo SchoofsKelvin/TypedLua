@@ -61,6 +61,10 @@ export interface FuncBody extends Chunk {
   parameters: string[];
 }
 
+export interface MainChunk extends Chunk {
+  lines: number[];
+}
+
 export interface ExpressionBase {
   type: string;
   index: number;
