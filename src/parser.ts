@@ -266,10 +266,11 @@ export class Parser {
           blocks.push([expr, this.block()[0], index]);
           index = this.trim();
         }
+        index = this.trim();
         const otherwise = this.keyword('else') && this.block()[0];
         const last = blocks.length === 1 ? 'if' : 'elseif';
         assert(this.keyword('end'),`Expected \`end\` to close \`${last}\` (line ${line})`);
-        return { index, blocks, otherwise, type: 'If' } as ls.If;
+        return { index, blocks, otherwise, type: 'If', endIndex: index } as ls.If;
       }
       case ls.Keyword.for: {
         const names = assert(this.nameList(), 'Expected a name');
