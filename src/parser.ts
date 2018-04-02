@@ -322,6 +322,7 @@ export class Parser {
             type: 'Variable',
             scope: this.scope,
             scopePosition: locals.length,
+            declaration: true,
           } as ls.Variable;
           return func;
         }
@@ -334,7 +335,9 @@ export class Parser {
         const variables = vars.map((v, k) => ({
           index, scope,
           type: 'Variable',
+          name: v,
           scopePosition: locStart + k,
+          declaration: true,
         } as ls.Variable));
         return {
           index, variables, expressions,
@@ -463,6 +466,7 @@ export class Parser {
         index, name, scope,
         type: 'Variable',
         scopePosition: scope.locals.length,
+        declaration: false,
       });
     }
     this.index = index;

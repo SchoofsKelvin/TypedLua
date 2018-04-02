@@ -106,6 +106,7 @@ export interface Variable extends ExpressionBase {
   scope: Scope;
   scopePosition: number;
   name: string;
+  declaration: boolean;
 }
 export interface Field extends ExpressionBase {
   type: 'Field';
