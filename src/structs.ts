@@ -157,6 +157,7 @@ export interface GenericFor extends ExpressionBase {
 export interface Assignment extends ExpressionBase {
   type: 'Assignment';
   variables: (Variable | Field)[]; // Variable/Field
+  expressions: Block;
 }
 export interface UnaryOp extends ExpressionBase {
   type: 'UnaryOp';
