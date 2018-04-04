@@ -213,7 +213,7 @@ export class Parser {
     return expr;
   }
   protected stat(): ls.Expression | null {
-    let index = this.trim();
+    const index = this.trim();
     const keyword = this.keyword();
     const line = this.line();
     if (!keyword) {
@@ -259,18 +259,19 @@ export class Parser {
         let expr = assert(this.expression(), 'Expected an expression');
         assert(this.keyword('then'), 'Expected `then`');
         const blocks: ls.IfBlock[] = [[expr, this.block()[0], index]];
-        index = this.trim();
+        let elseIndex = this.trim();
         while (this.keyword('elseif')) {
           expr = assert(this.expression(), 'Expected an expression');
           assert(this.keyword('then'), 'Expected `then`');
-          blocks.push([expr, this.block()[0], index]);
-          index = this.trim();
+          blocks.push([expr, this.block()[0], elseIndex]);
+          elseIndex = this.trim();
         }
-        index = this.trim();
+        elseIndex = this.trim();
         const otherwise = this.keyword('else') && this.block()[0];
         const last = blocks.length === 1 ? 'if' : 'elseif';
+        const endIndex = this.trim();
         assert(this.keyword('end'),`Expected \`end\` to close \`${last}\` (line ${line})`);
-        return { index, blocks, otherwise, type: 'If', endIndex: index } as ls.If;
+        return { index, blocks, otherwise, endIndex, elseIndex, type: 'If' } as ls.If;
       }
       case ls.Keyword.for: {
         const names = assert(this.nameList(), 'Expected a name');

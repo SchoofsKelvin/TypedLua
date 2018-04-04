@@ -137,6 +137,7 @@ export interface If extends ExpressionBase {
   type: 'If';
   blocks: IfBlock[];
   otherwise?: Block;
+  elseIndex: number;
   endIndex: number;
 }
 
