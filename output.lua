@@ -12,13 +12,13 @@ local function a()
 	a, b = 1, 2, 3 end
 
 
-
+--[[]]
 
 
 local TostringValue, TupleToString, List, pprint = do
 	local tostring, pcall = tostring, pcall
 	local function doPathKey(key)
-		if type(key)=="string"and key:find("^[%a_][%w_]*$")then
+		if type(key)=="string" and key:find("^[%a_][%w_]*$")then
 			return'.'..key
 		end return'['..TostringValue(key, true)..']'end
 	local prims = {["boolean"] = true["number"] = true["string"] = true["userdata"] = true}
@@ -26,11 +26,11 @@ local TostringValue, TupleToString, List, pprint = do
 		tab = tab or 0
 		local typ = type(val)
 		local tss, ts = pcall(tostring, val)
-		ts = tss and ts or"\60tostring errored>"
+		ts = tss and ts or "\60tostring errored>"
 		if type(ts)~="string"then return"__tostring_returned_non_string"end
 		local realpre = ("\32   "):rep(tab)
-		local prefix = inline and""or realpre
-		short = short or{["path"] = {"root"}}
+		local prefix = inline and "" or realpre
+		short = short or {["path"] = {"root"}}
 		if typ=="string"then
 			return prefix..("%q"):format(val)
 		elseif
@@ -41,29 +41,28 @@ local TostringValue, TupleToString, List, pprint = do
 			short[val] = table concat(short path)
 			local pc, ipc, prim = 0, 0, true
 			for k, v in pairs(val) do
-				pc, prim = pc+1, prim and prims[type(k)]and prims[type(v)]end
+				pc, prim = pc+1, prim and prims[type(k)] and prims[type(v)]end
 			
 			for k, v in ipairs(val) do
-				ipc, prim = ipc+1, prim and prims[type(k)]and prims[type(v)]end
+				ipc, prim = ipc+1, prim and prims[type(k)] and prims[type(v)]end
 			if pc==0 then return prefix.."{}"end
 			local idk, pre = {}, ("\32   "):rep(tab+1)
-			local bigsep = prim and""or[[
-]]
-			local sep = prim and','or';'
+			local bigsep = prim and "" or '\n'
+			local sep = prim and ',' or ';'
 			for i = 1, ipc do
 				idk[i] = TostringValue(val[i], short, prim and 0 or tab+1)..sep..bigsep end
 			if ipc~=0 and prim then idk[#idk] = idk[#idk]:sub(1, -2)end
-			local row = (prim and""or pre).."[%s]\32= %s"..sep..bigsep
+			local row = (prim and "" or pre).."[%s]\32= %s"..sep..bigsep
 			for k, v in pairs(val) do
-				if type(k)~="number"or type(k)=="number"and k>ipc then
+				if type(k)~="number" or type(k)=="number" and k>ipc then
 					local key = TostringValue(k, true)short path[#short path+1] = doPathKey(k)
 					table insert(idk, row:format(key, TostringValue(v, short, prim and 0 or tab+1, true)))
 					short path[#short path] = nil
 				end end
 			if pc-ipc~=0 and prim and idk[1]then idk[#idk] = idk[#idk]:sub(1, -2)end
-			return prefix..'{'..bigsep..table concat(idk)..(prim and""or realpre)..'}'then
+			return prefix..'{'..bigsep..table concat(idk)..(prim and "" or realpre)..'}'then
 		elseif
-			return prefix..(val Parent and val:GetFullName()or"Instance\32"..ts)then
+			return prefix..(val Parent and val:GetFullName() or "Instance\32"..ts)then
 		
 		
 		else return prefix..typ..'\32'..ts end end
@@ -81,8 +80,7 @@ local TostringValue, TupleToString, List, pprint = do
 	
 	local function path()
 		local res, trace = {}, debug traceback()
-		for line in trace:gmatch([[[^
-]+]]) do
+		for line in trace:gmatch("[^\n]+") do
 			local ln, fn = line:match("(%d+):\32in function '(%w+)'")
 			if ln and tonumber(ln)>100 then
 				res[#res+1] = fn
@@ -114,36 +112,29 @@ function a()
 local function cprint(txt, col, maxl)
 	local out = io open("out.ps1", 'w')
 	local ln, nl = 1
-	txt = txt:gsub([[
-]], [[ 
-]])
-	for line in txt:gmatch([[[^
-]+]]) do
+	txt = txt:gsub('\n', "\32\n")
+	for line in txt:gmatch("[^\n]+") do
 		if maxl and ln>maxl then break end
-		if nl then out:write([[write-host
-]])end nl = true
+		if nl then out:write("write-host\n")end nl = true
 		line = line:gsub('"', "96\"")ln = ln+1
 		if line=='\32'then line = ""end
-		out:write("write-host\32-NoNewline -Background "..col.."\32\""..line..[["
-]])end
+		out:write("write-host\32-NoNewline -Background "..col.."\32\""..line.."\"\n")end
 	
 	out:close()
-	os execute("powershell\32-ExecutionPolicy Bypass -File out.ps1")end
-
+	os execute("powershell\32-ExecutionPolicy Bypass -File out.ps1")
+	--[[os.execute("powershell write-host -NoNewline -foreground "..col.." "..test)]]end
 
 
 local function splitprint(txt, i)
 	local begin, lns = txt:sub(1, i-1), {}
-	for line in begin:gmatch([[[^
-]+]]) do
+	for line in begin:gmatch("[^\n]+") do
 		lns[#lns+1] = line end
-	begin = table concat(lns, [[
-]], math max(#lns-5, 1))
-	cprint(begin, "darkgreen"or"green")
-	cprint(txt:sub(i), "darkred"or"red", 3)print()end
+	begin = table concat(lns, '\n', math max(#lns-5, 1))
+	cprint(begin, "darkgreen" or "green")
+	cprint(txt:sub(i), "darkred" or "red", 3)print()end
 
 
-
+--[[]]
 
 local function map(tab)
 	local res = {}
@@ -164,12 +155,12 @@ local Binops, BinopsPriority = {
 "\60="'\60'"\62="'\62'"\61=""~\61"}, 
 {
 ['^'] = 1
-
+--[[ unary operators = 2]]
 ['*'] = 3['/'] = 3['%'] = 3
 ['+'] = 4['-'] = 4
 [".."] = 5
-['\60'] = 6["\60="] = 6['\62'] = 6["\62="] = 6["\61="] = 6["~\61"] = 6}
-
+['\60'] = 6["\60="] = 6['\62'] = 6["\62="] = 6["\61="] = 6["~\61"] = 6
+--[[ or/and = 7]]}
 
 
 local Parser = {}
@@ -186,7 +177,7 @@ function Parser new(str)
 	return res end
 
 
-do
+--[[ Parser stuff]]do
 	function Parser Line(i)
 		i = i or self i
 		local lines = self lines
@@ -216,8 +207,7 @@ do
 			assert(start, "unfinished\32long comment starting at line "..start)
 			self i = stop+1 return true
 		elseif
-			local p = self:Find([[
-]], true)
+			local p = self:Find('\n', true)
 			if N p then return end
 			self i = p+1 return true then
 		end end
@@ -257,7 +247,7 @@ do
 
 
 
-do
+--[[ Error handling]]do
 	function Parser Assert(cond, err, ...)
 		if cond then return end
 		err = err:gsub("%%l", self:Line())
@@ -375,7 +365,7 @@ do
 
 
 
-do
+--[[ Syntax parsing]]do
 	function Parser Block()
 		BLOCKS = BLOCKS+1
 		local scope = {
@@ -404,7 +394,7 @@ do
 			stats[#stats+1] = {
 			["Line"] = start
 			["Type"] = "Return"
-			["Expressions"] = self:Explist()or{}}then
+			["Expressions"] = self:Explist() or {}}then
 		
 		end
 		self block = prev
@@ -426,7 +416,20 @@ do
 		assert(self i>#self str, "Unexpected\32symbol")
 		return ch end
 	
-	
+	--[[
+	stat ::=
+		varlist `=� explist | 
+		functioncall | 
+		do block end | 
+		while exp do block end | 
+		repeat block until exp | 
+		if exp then block {elseif exp then block} [else block] end | 
+		for Name `=� exp `,� exp [`,� exp] do block end | 
+		for namelist in explist do block end | 
+		function funcname funcbody | 
+		local function Name funcbody | 
+		local namelist [`=� explist] 
+	]]
 	
 	
 	
@@ -488,7 +491,7 @@ do
 			assert(self:Keyword("do"), "Expected\32`do`")
 			local block = self:Block()
 			assert(self:Keyword("end"), "Expected\32`end` to close `while` (line "..start..')')
-			
+			--[[self.block[#self.block+1] = ]]
 			return{
 				["Line"] = start
 				["Type"] = "While"
@@ -520,7 +523,7 @@ do
 				otherwise = self:Block()
 			end
 			assert(self:Keyword("end"), "Expected\32`end` to close `if` (line "..start..')')
-			
+			--[[self.block[#self.block+1] = ]]
 			return{
 				["Line"] = start
 				["Type"] = "If"
@@ -571,7 +574,13 @@ do
 			local name = self:Functionname()
 			assert(name, "Expected\32a name")
 			local func = self:Funcbody()
-			
+			--[[func.Variable = {
+				Line = start;
+				Type = "Variable";
+				Scope = self.scope;
+				ScopePosition = #self.scope.Locals;
+				Name = name;
+			}]]
 			
 			
 			
@@ -579,11 +588,11 @@ do
 			
 			
 			func Variable = name
-			if name Type=="Method"then
-				
+			if name Type=="Method"
+			--[[table.insert(func.Parameters,1,"self")]]then
 				table insert(func Chunk Scope Locals, 1, "self")
 			end
-			
+			--[[self.block[#self.block+1] = func]]
 			return func then
 		elseif
 			if self:Keyword("function")then
@@ -600,7 +609,7 @@ do
 				["Name"] = name}
 				
 				func Local = true
-				
+				--[[self.block[#self.block+1] = func]]
 				return func
 			
 			
@@ -627,7 +636,8 @@ do
 			
 			
 			
-			else local vars, exprs = self:Namelist()assert(vars, "Expected\32a name")if self:String('\61')then exprs = self:Explist()end local locals = self scope Locals for i = 1, #vars do local name = vars[i]vars[i] = {["Line"] = start["Type"] = "Variable"["Name"] = name["Scope"] = self scope["ScopePosition"] = #self scope Locals}locals[#locals+1] = name end return{["Line"] = start["Type"] = "Assignment"["Variables"] = vars["Expressions"] = exprs or{}["Locals"] = true}end error("hi")then
+			else local vars, exprs = self:Namelist()assert(vars, "Expected\32a name")if self:String('\61')then exprs = self:Explist()end local locals = self scope Locals for i = 1, #vars do local name = vars[i]vars[i] = {["Line"] = start["Type"] = "Variable"["Name"] = name["Scope"] = self scope["ScopePosition"] = #self scope Locals}locals[#locals+1] = name end return{["Line"] = start["Type"] = "Assignment"["Variables"] = vars["Expressions"] = exprs or {}["Locals"] = true}end error("hi")
+			--[[if not keyword then]]then
 		
 		
 		
@@ -645,8 +655,7 @@ do
 		
 		
 		
-		
-		else self i = old local expr, o = self:Peek("Expression")if expr and(expr Type=="FunctionCall"or expr Type=="FunctionSelfCall")then return expr end self i = o local vars = self:Varlist()if vars then assert(self:String('\61'), "Expected\32`=`")local exprs = self:Explist()assert(exprs, "Expected\32an expression")return{["Line"] = start["Type"] = "Assignment"["Variables"] = vars["Expressions"] = exprs}end self i = o end
+		else self i = old local expr, o = self:Peek("Expression")if expr and (expr Type=="FunctionCall" or expr Type=="FunctionSelfCall")then return expr end self i = o local vars = self:Varlist()if vars then assert(self:String('\61'), "Expected\32`=`")local exprs = self:Explist()assert(exprs, "Expected\32an expression")return{["Line"] = start["Type"] = "Assignment"["Variables"] = vars["Expressions"] = exprs}end self i = o end
 		self i = old end
 	
 	function Parser CheckBinop(expr)
@@ -820,7 +829,7 @@ do
 		local value = self:Match("%d+")
 		if self:String('.', true)then
 			local n = self:Match("%d+", true)
-			value = (value or"")..'.'..n
+			value = (value or "")..'.'..n
 		elseif
 			return nil then
 		end
@@ -835,14 +844,12 @@ do
 			["Value"] = tonumber(value)}end
 	
 	
-	local escapes = {['a'] = 'a'['b'] = '\8'['f'] = '\12'['n'] = [[
-]]['r'] = '\13'['t'] = '\t'['v'] = '\11'['\13'] = [[
-]]["\\"] = "\\\\"}
+	local escapes = {['a'] = 'a'['b'] = '\8'['f'] = '\12'['n'] = '\n'['r'] = '\13'['t'] = '\t'['v'] = '\11'['\13'] = '\n'["\\"] = "\\\\"}
 	local function escaped(str)
 		str = str:gsub("\\(%d%d?%d?)", string char)
 		return
 			
-			str:gsub("\\x(%d+%d+)", function(c)return string char(tonumber(c, 16))end):gsub("\\(.)", function(c)return escapes[c]or c end)end
+			str:gsub("\\x(%d+%d+)", function(c)return string char(tonumber(c, 16))end):gsub("\\(.)", function(c)return escapes[c] or c end)end
 	
 	function Parser StringConstant()
 		local q = self:Match("['\"]")
@@ -912,7 +919,7 @@ do
 		
 		end self i = old
 		local expr = self:Expression()
-		return expr and{["Value"] = expr}end
+		return expr and {["Value"] = expr}end
 	
 	function Parser Table()
 		if N self:String('{')then return end
@@ -952,7 +959,7 @@ do
 		local start = self:Line()
 		res = self:Explist()
 		assert(self:String(')'), "Expected\32`)` to close `(` (line "..start..')')
-		return res or{}end
+		return res or {}end
 	
 	function Parser Functioncall()
 		local old = self i
@@ -1014,7 +1021,7 @@ do
 		assert(self:String(')'), "Expected\32`)`")
 		local start = self:Line()
 		local chunk = self:Chunk()
-		
+		--[[chunk.Parameters = params]]
 		assert(self:Keyword("end"), "Expected\32`end` for function (line "..start..')')
 		return{
 			["Line"] = start
@@ -1033,7 +1040,7 @@ if...then return Parser end
 
 
 
-
+--[[]]
 
 local source = io open("input.lua")
 source = source:read("*a"), source:close()
@@ -1049,10 +1056,8 @@ xpcall(function()
 function(e)
 	print("ERROR:", e)
 	print("stack\32traceback:")
-	print(debug traceback():match([[.-
-.-
-(.*)]]))
-	print("Position:", parser:Line())end)
-
-
+	print(debug traceback():match(".-\n.-\10(.*)"))
+	print("Position:", parser:Line())
+	
+	--[[cprint(parser.str:sub(parser.i),"red",3)]]end)
 

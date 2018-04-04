@@ -68,12 +68,15 @@ export interface MainChunk extends Chunk {
 export interface ExpressionBase {
   type: string;
   index: number;
+  /** There might be a comment right behind this expression */
+  comment?: Comment;
 }
 
 export type Expression = Vararg | Break | Return | Variable
   | Field | Method | Do | While | Repeat | If | NumericFor
   | GenericFor | Assignment | UnaryOp | BinaryOp | FunctionCall
-  | FunctionSelfCall | Brackets |Constant | Table | FunctionExpr;
+  | FunctionSelfCall | Brackets |Constant | Table | FunctionExpr
+  | Comment ;
 
 /**
  * Used in {@link Table}
@@ -196,6 +199,7 @@ export interface Table extends ExpressionBase {
   type: 'Table';
   content: TableEntry[];
 }
+
 /** A crafting step for Function */
 export interface FunctionExpr extends ExpressionBase {
   type: 'Function';
@@ -203,4 +207,11 @@ export interface FunctionExpr extends ExpressionBase {
   parameters: string[];
   variable?: Variable | Field | Method;
   local: boolean;
+}
+
+/** The special Comment expression */
+export interface Comment extends ExpressionBase {
+  type: 'Comment';
+  long: boolean;
+  text: string;
 }

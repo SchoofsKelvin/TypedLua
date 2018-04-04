@@ -56,6 +56,18 @@ export class Unparser {
     this.currentLine += str;
   }
   protected unparseExpression(expr: ls.Expression): void {
+    this.unparseExpressionForReal(expr);
+    while (expr.comment) {
+      this.ensureLine(this.line(expr.comment.index));
+      const text = expr.comment.text.replace(/\r$/, '');
+      let amount = 0;
+      while (longStringThing(text, amount)) amount += 1;
+      const eq = '='.repeat(amount);
+      this.currentLine += `--[${eq}[${text}]${eq}]`;
+      expr = expr.comment;
+    }
+  }
+  protected unparseExpressionForReal(expr: ls.Expression): void {
     this.ensureLine(this.line(expr.index));
     switch (expr.type) {
       case 'Vararg':
@@ -155,8 +167,12 @@ export class Unparser {
       case 'BinaryOp':
         this.unparseExpression(expr.left);
       case 'UnaryOp':
+        if (expr.operation === 'and') this.currentLine += ' ';
+        if (expr.operation === 'or') this.currentLine += ' ';
         this.safeAppend(expr.operation);
         if (expr.operation === 'not') this.currentLine += ' ';
+        if (expr.operation === 'and') this.currentLine += ' ';
+        if (expr.operation === 'or') this.currentLine += ' ';
         const right = expr.type === 'UnaryOp' ? expr.expression : expr.right;
         return this.unparseExpression(right);
       case 'FunctionSelfCall':
@@ -184,7 +200,7 @@ export class Unparser {
       case 'Constant':
         if (expr.value === null) return this.safeAppend('nil');
         if (typeof expr.value === 'string') {
-          if (expr.value.includes('\n')) {
+          if (expr.value.includes('\n') && expr.value.length > 100) {
             let amount = 0;
             while (longStringThing(expr.value, amount)) amount += 1;
             const eq = '='.repeat(amount);
