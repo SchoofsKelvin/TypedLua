@@ -32,7 +32,9 @@ export type BinaryOperation = '^'
   | '<' | '<=' | '>' | '>=' | '==' | '~='
   | 'or' | 'and';
 
-export const BINARY_OP_PRIORTY: {[op: string]: number | undefined} = {
+export const BINARY_OP_PRIORTY: {
+  readonly [P in BinaryOperation]: number;
+} = {
   ['^']: 1,
   // unary operators = 2
   ['*']: 3, ['/']: 3, ['%']: 3,
@@ -40,6 +42,7 @@ export const BINARY_OP_PRIORTY: {[op: string]: number | undefined} = {
   ['..']: 5,
   ['<=']: 6, ['<']: 6, ['>=']: 6, ['>']: 6, ['==']: 6, ['~=']: 6,
   // or / and = 7
+  or: 7, and: 7,
 };
 
 export type UnaryOperation = '-' | '#' | 'not';
@@ -122,11 +125,11 @@ export interface Method extends ExpressionBase {
   name: string;
   base: Expression;
 }
-export interface Do extends ExpressionBase {
+export interface Do extends BlockExpressionBase {
   type: 'Do';
   block: Block;
 }
-export interface While extends ExpressionBase {
+export interface While extends BlockExpressionBase {
   type: 'While';
   block: Block;
   condition: Expression;
@@ -135,16 +138,16 @@ export interface Repeat extends ExpressionBase {
   type: 'Repeat';
   block: Block;
   condition: Expression;
+  untilIndex: number;
 }
-export interface If extends ExpressionBase {
+export interface If extends BlockExpressionBase {
   type: 'If';
   blocks: IfBlock[];
   otherwise?: Block;
   elseIndex: number;
-  endIndex: number;
 }
 
-export interface NumericFor extends ExpressionBase {
+export interface NumericFor extends BlockExpressionBase {
   type: 'NumericFor';
   block: Block;
   name: string;
@@ -152,7 +155,7 @@ export interface NumericFor extends ExpressionBase {
   limit: Expression;
   step?: Expression;
 }
-export interface GenericFor extends ExpressionBase {
+export interface GenericFor extends BlockExpressionBase {
   type: 'GenericFor';
   block: Block;
   names: string[];
@@ -200,8 +203,13 @@ export interface Table extends ExpressionBase {
   content: TableEntry[];
 }
 
+/** Anything that has a block that has an ending `end` */
+export interface BlockExpressionBase extends ExpressionBase {
+  endIndex: number;
+}
+
 /** A crafting step for Function */
-export interface FunctionExpr extends ExpressionBase {
+export interface FunctionExpr extends BlockExpressionBase {
   type: 'Function';
   chunk: Chunk;
   parameters: string[];
