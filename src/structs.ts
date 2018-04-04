@@ -78,7 +78,7 @@ export interface ExpressionBase {
 export type Expression = Vararg | Break | Return | Variable
   | Field | Method | Do | While | Repeat | If | NumericFor
   | GenericFor | Assignment | UnaryOp | BinaryOp | FunctionCall
-  | FunctionSelfCall | Brackets |Constant | Table | FunctionExpr
+  | FunctionSelfCall | Brackets | Constant | Table | FunctionExpr
   | Comment ;
 
 /**
