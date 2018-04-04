@@ -206,7 +206,7 @@ export class Parser {
       index, name, scope,
       type: 'Variable',
       scopePosition: scope.locals.length,
-      declaration: true,
+      declaration: false,
     };
     this.lastExpression = expr;
     while (this.string('.')) {
@@ -303,7 +303,7 @@ export class Parser {
           const v = assert(this.expression(), 'Expected an expression');
           assert(this.string(','), 'Expected a `,`');
           const limit = assert(this.expression(), 'Expected an expression');
-          const step = assert((this.string(',') && this.expression()) as ls.Expression, 'Expected an expression');
+          const step = this.string(',') ? assert(this.expression(), 'Expected an expression') : undefined;
           assert(this.keyword('do'), 'Expected `do`');
           const innerblock = this.block()[0];
           const endIndex = this.trim();
