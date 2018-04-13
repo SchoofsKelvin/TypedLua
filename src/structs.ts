@@ -65,7 +65,9 @@ export interface FuncBody extends Chunk {
 }
 
 export interface MainChunk extends Chunk {
+  type: 'MainChunk';
   lines: number[];
+  startComment?: Comment;
 }
 
 export interface ExpressionBase {
@@ -79,7 +81,7 @@ export type Expression = Vararg | Break | Return | Variable
   | Field | Method | Do | While | Repeat | If | NumericFor
   | GenericFor | Assignment | UnaryOp | BinaryOp | FunctionCall
   | FunctionSelfCall | Brackets | Constant | Table | FunctionExpr
-  | Comment ;
+  | Comment;
 
 /**
  * Used in {@link Table}
@@ -144,7 +146,7 @@ export interface If extends BlockExpressionBase {
   type: 'If';
   blocks: IfBlock[];
   otherwise?: Block;
-  elseIndex: number;
+  elseIndex?: number;
 }
 
 export interface NumericFor extends BlockExpressionBase {

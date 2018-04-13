@@ -1,4 +1,9 @@
 
+-- a
+-- b
+--[[c]]
+
+
 print"hi"
 print"hi"
 

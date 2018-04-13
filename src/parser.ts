@@ -47,9 +47,17 @@ export class Parser {
   }
   /* PUBLIC METHODS */
   public parse(): ls.MainChunk {
+    const start: ls.Comment = this.lastExpression = {
+      type: 'Comment', long: false, index: 0, text: '',
+    };
     const ch = this.chunk();
     assert(this.index === this.source.length, 'Unexpected symbol');
-    return { ...ch, lines: this.charToLine };
+    return {
+      ...ch,
+      type: 'MainChunk',
+      lines: this.charToLine,
+      startComment: start.comment,
+    };
   }
   public line(index: number = this.index): number {
     return this.charToLine.findIndex(v => v > index);
@@ -87,7 +95,7 @@ export class Parser {
       const [a,b] = assert(this.find(`]${eq}]`, true), `Unfinished long comment starting at line ${start}`);
       this.index = b + 1;
       if (this.lastExpression) {
-        this.lastExpression.comment = {
+        this.lastExpression = this.lastExpression.comment = {
           type: 'Comment',
           index: mat.index,
           long: true,
@@ -102,7 +110,7 @@ export class Parser {
       if (!end) return false;
       this.index = end[1] + 1;
       if (this.lastExpression) {
-        this.lastExpression.comment = {
+        this.lastExpression = this.lastExpression.comment = {
           index,
           type: 'Comment',
           long: false,

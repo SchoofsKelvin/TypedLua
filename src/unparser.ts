@@ -20,13 +20,15 @@ function escapeString(str: string, quote: string) {
 }
 
 export class Unparser {
-  protected indent = -1;
+  protected indent = 0;
   protected currentLine = '';
   protected lines: string[] = [];
   constructor(protected chunk: ls.MainChunk) {
   }
   /* PUBLIC METHODS */
   public unparse(): string {
+    this.unparseComment(this.chunk.startComment);
+    this.indent = -1;
     this.unparseExpressions(this.chunk.block);
     return this.lines.join('\n');
   }
@@ -55,17 +57,20 @@ export class Unparser {
     }
     this.currentLine += str;
   }
-  protected unparseExpression(expr: ls.Expression): void {
-    this.unparseExpressionForReal(expr);
-    while (expr.comment) {
-      this.ensureLine(this.line(expr.comment.index));
-      const text = expr.comment.text.replace(/\r$/, '');
+  protected unparseComment(expr?: ls.Comment): void {
+    while (expr) {
+      this.ensureLine(this.line(expr.index));
+      const text = expr.text.replace(/\r$/, '');
       let amount = 0;
       while (longStringThing(text, amount)) amount += 1;
       const eq = '='.repeat(amount);
       this.currentLine += `--[${eq}[${text}]${eq}]`;
       expr = expr.comment;
     }
+  }
+  protected unparseExpression(expr: ls.Expression): void {
+    this.unparseExpressionForReal(expr);
+    this.unparseComment(expr.comment);
   }
   protected unparseExpressionForReal(expr: ls.Expression): void {
     this.ensureLine(this.line(expr.index));
@@ -99,10 +104,12 @@ export class Unparser {
       case 'Do':
         this.safeAppend('do');
         this.unparseExpressions(expr.block);
+        this.ensureLine(this.line(expr.endIndex));
         return this.safeAppend('end');
       case 'Repeat':
         this.safeAppend('repeat');
         this.unparseExpressions(expr.block);
+        this.ensureLine(this.line(expr.untilIndex));
         this.safeAppend('until');
         return this.unparseExpression(expr.condition);
       case 'If': {
@@ -119,9 +126,11 @@ export class Unparser {
         });
         this.ensureLine(this.line(expr.endIndex));
         if (expr.otherwise) {
+          this.ensureLine(this.line(expr.elseIndex!));
           this.safeAppend('else');
           this.unparseExpressions(expr.otherwise);
         }
+        this.ensureLine(this.line(expr.endIndex));
         return this.safeAppend('end');
       }
       case 'NumericFor':
@@ -134,6 +143,7 @@ export class Unparser {
         });
         this.currentLine += ' do';
         this.unparseExpressions(expr.block);
+        this.ensureLine(this.line(expr.endIndex));
         return this.safeAppend('end');
       case 'GenericFor':
         this.safeAppend(`for `);
@@ -146,6 +156,7 @@ export class Unparser {
         });
         this.currentLine += ' do';
         this.unparseExpressions(expr.block);
+        this.ensureLine(this.line(expr.endIndex));
         return this.safeAppend('end');
       case 'Assignment': {
         let first: ls.Expression = expr.variables[0];
@@ -239,6 +250,7 @@ export class Unparser {
         this.currentLine += expr.parameters.join(', ');
         this.currentLine += ')';
         this.unparseExpressions(expr.chunk.block);
+        this.ensureLine(this.line(expr.endIndex));
         return this.safeAppend('end');
       }
       default:

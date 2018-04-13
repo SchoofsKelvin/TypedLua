@@ -14,7 +14,7 @@ try {
   const unparser = new Unparser(idk);
   const uhu = unparser.unparse();
   fs.writeFileSync('output.lua', uhu, 'utf-8');
-  console.log(uhu);
+  console.log('Output written to output.lua');
 } catch (e) {
   console.log(parser.line());
   throw e;
