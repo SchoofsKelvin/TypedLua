@@ -50,10 +50,8 @@ export class Unparser {
     this.indent -= 1;
   }
   protected safeAppend(str: string): void {
-    if (this.currentLine.match(/\w$/)) {
-      if (str.match(/^\w/)) {
-        str = ' ' + str;
-      }
+    if (this.currentLine.match(/(\w|\.\.)$/)) {
+      str = ' ' + str;
     }
     this.currentLine += str;
   }
@@ -178,14 +176,13 @@ export class Unparser {
       case 'BinaryOp':
         this.unparseExpression(expr.left);
       case 'UnaryOp':
-        if (expr.operation === 'and') this.currentLine += ' ';
-        if (expr.operation === 'or') this.currentLine += ' ';
-        this.safeAppend(expr.operation);
+        this.currentLine += ' ' + expr.operation;
+        if (expr.type === 'BinaryOp') {
+          this.currentLine += ' ';
+          return this.unparseExpression(expr.right);
+        }
         if (expr.operation === 'not') this.currentLine += ' ';
-        if (expr.operation === 'and') this.currentLine += ' ';
-        if (expr.operation === 'or') this.currentLine += ' ';
-        const right = expr.type === 'UnaryOp' ? expr.expression : expr.right;
-        return this.unparseExpression(right);
+        return this.unparseExpression(expr.expression);
       case 'FunctionSelfCall':
         this.unparseExpression(expr.base);
         this.currentLine += `:${expr.name}`;
