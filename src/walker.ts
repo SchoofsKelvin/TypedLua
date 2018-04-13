@@ -37,24 +37,79 @@ export abstract class Walker implements IWalker {
   /* IWalker methods */
   public walkVararg(expr: ls.Vararg): void {}
   public walkBreak(expr: ls.Break): void {}
-  public walkReturn(expr: ls.Return): void {}
+  public walkReturn(expr: ls.Return): void {
+    expr.expressions.forEach(this.walkExpression, this);
+  }
   public walkVariable(expr: ls.Variable): void {}
-  public walkField(expr: ls.Field): void {}
-  public walkMethod(expr: ls.Method): void {}
-  public walkDo(expr: ls.Do): void {}
-  public walkWhile(expr: ls.While): void {}
-  public walkRepeat(expr: ls.Repeat): void {}
-  public walkIf(expr: ls.If): void {}
-  public walkNumericFor(expr: ls.NumericFor): void {}
-  public walkGenericFor(expr: ls.GenericFor): void {}
-  public walkAssignment(expr: ls.Assignment): void {}
-  public walkUnaryOp(expr: ls.UnaryOp): void {}
-  public walkBinaryOp(expr: ls.BinaryOp): void {}
-  public walkFunctionCall(expr: ls.FunctionCall): void {}
-  public walkFunctionSelfCall(expr: ls.FunctionSelfCall): void {}
-  public walkBrackets(expr: ls.Brackets): void {}
+  public walkField(expr: ls.Field): void {
+    this.walkExpression(expr.base);
+    if (!expr.expression) return;
+    this.walkExpression(expr.expression);
+  }
+  public walkMethod(expr: ls.Method): void {
+    this.walkExpression(expr.base);
+  }
+  public walkDo(expr: ls.Do): void {
+    expr.block.forEach(this.walkExpression, this);
+  }
+  public walkWhile(expr: ls.While): void {
+    this.walkExpression(expr.condition);
+    expr.block.forEach(this.walkExpression, this);
+  }
+  public walkRepeat(expr: ls.Repeat): void {
+    expr.block.forEach(this.walkExpression, this);
+    this.walkExpression(expr.condition);
+  }
+  public walkIf(expr: ls.If): void {
+    expr.blocks.forEach(([cond, block]) => {
+      this.walkExpression(cond);
+      block.forEach(this.walkExpression, this);
+    });
+    if (!expr.otherwise) return;
+    expr.otherwise.forEach(this.walkExpression, this);
+  }
+  public walkNumericFor(expr: ls.NumericFor): void {
+    this.walkExpression(expr.var);
+    this.walkExpression(expr.limit);
+    if (expr.step) this.walkExpression(expr.step);
+    expr.block.forEach(this.walkExpression, this);
+  }
+  public walkGenericFor(expr: ls.GenericFor): void {
+    expr.expressions.forEach(this.walkExpression, this);
+    expr.block.forEach(this.walkExpression, this);
+  }
+  public walkAssignment(expr: ls.Assignment): void {
+    expr.variables.forEach(this.walkExpression, this);
+    expr.expressions.forEach(this.walkExpression, this);
+  }
+  public walkUnaryOp(expr: ls.UnaryOp): void {
+    this.walkExpression(expr.expression);
+  }
+  public walkBinaryOp(expr: ls.BinaryOp): void {
+    this.walkExpression(expr.left);
+    this.walkExpression(expr.right);
+  }
+  public walkFunctionCall(expr: ls.FunctionCall): void {
+    this.walkExpression(expr.target);
+    expr.arguments.forEach(this.walkExpression, this);
+  }
+  public walkFunctionSelfCall(expr: ls.FunctionSelfCall): void {
+    this.walkExpression(expr.base);
+    expr.arguments.forEach(this.walkExpression, this);
+  }
+  public walkBrackets(expr: ls.Brackets): void {
+    this.walkExpression(expr.expression);
+  }
   public walkConstant(expr: ls.Constant): void {}
-  public walkTable(expr: ls.Table): void {}
-  public walkFunctionExpr(expr: ls.FunctionExpr): void {}
+  public walkTable(expr: ls.Table): void {
+    expr.content.forEach(({ key, value }) => {
+      if (key) this.walkExpression(key);
+      this.walkExpression(value);
+    });
+  }
+  public walkFunctionExpr(expr: ls.FunctionExpr): void {
+    if (expr.variable) this.walkExpression(expr.variable);
+    expr.chunk.block.forEach(this.walkExpression, this);
+  }
   public walkComment(expr: ls.Comment): void {}
 }
