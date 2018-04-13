@@ -1,3 +1,4 @@
+import { TypingHolder } from './typingStructs';
 
 /* Constants (+ their types)*/
 
@@ -75,6 +76,7 @@ export interface ExpressionBase {
   index: number;
   /** There might be a comment right behind this expression */
   comment?: Comment;
+  typing?: TypingHolder;
 }
 
 export type Expression = Vararg | Break | Return | Variable
