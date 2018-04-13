@@ -1,5 +1,5 @@
 
-import * as ls from './structs';
+import * as ls from './parserStructs';
 
 export type walkType<T extends ls.Expression> = (expr: T) => void;
 

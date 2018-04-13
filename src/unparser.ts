@@ -1,5 +1,5 @@
 
-import * as ls from './structs';
+import * as ls from './parserStructs';
 
 function declaresLocal(expr: ls.Expression | null | undefined) {
   if (!expr) return false;

@@ -1,7 +1,7 @@
 
 import * as util from 'util';
 
-import * as ls from './structs';
+import * as ls from './parserStructs';
 
 type falsy = null | undefined | false | 0;
 function assert<T>(condition: T | falsy, errorMessage?: string): T {
