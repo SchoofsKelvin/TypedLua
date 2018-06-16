@@ -12,11 +12,20 @@ function longStringThing(str: string, amount: number) {
   return str.includes(`]${'='.repeat(amount)}]`);
 }
 
+function replace(str: string, search: string, replacement: string) {
+  let res = str.replace(search, replacement);
+  while (str !== res) {
+    str = res;
+    res = str.replace(search, replacement);
+  }
+  return res;
+}
+
 const ESCAPE_FUNC = (s: string) => `\\${s.charCodeAt(0)}`;
 function escapeString(str: string, quote: string) {
-  return str.replace(quote, `\\${quote}`)
-    .replace('\n','\\n').replace('\t','\\t')
-    .replace(/[^\w_\-+*/\\[\](){}#'"´`~:;,.?$^£%¨°!@&|]/, ESCAPE_FUNC);
+  return replace(str, quote, `\\${quote}`)
+    .replace(/\n/g,'\\n').replace(/\t/g,'\\t')
+    .replace(/[^\w_\-+* \t/\\[\](){}#'"´`~:;,.?$^£%¨°!@&|]/g, ESCAPE_FUNC);
 }
 
 export class Unparser {
