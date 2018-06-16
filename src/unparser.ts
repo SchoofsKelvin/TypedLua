@@ -46,9 +46,16 @@ export class Unparser {
     line -= 1;
     while (this.lines.length < line) this.nextLine();
   }
-  protected unparseExpressions(exprs: ls.Expression[]): void {
+  protected unparseExpressions(exprs: ls.Expression[], comas = false): void {
     this.indent += 1;
-    exprs.forEach(this.unparseExpression, this);
+    if (comas) {
+      exprs.forEach((expr, index) => {
+        if (index) this.currentLine += ', ';
+        this.unparseExpression(expr);
+      });
+    } else {
+      exprs.forEach(this.unparseExpression, this);
+    }
     this.indent -= 1;
   }
   protected safeAppend(str: string): void {
@@ -82,7 +89,7 @@ export class Unparser {
       case 'Return': {
         const exprs = expr.expressions;
         this.safeAppend('return');
-        this.unparseExpressions(exprs);
+        this.unparseExpressions(exprs, true);
         break;
       }
       case 'Variable':
