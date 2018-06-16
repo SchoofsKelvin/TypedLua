@@ -753,6 +753,15 @@ export class Parser {
     }
     return null;
   }
+  protected typeList(): ls.ParsedTyping[] | null {
+    const typing = this.typing();
+    if (!typing) return null;
+    const typings = [typing];
+    while (this.string(',')) {
+      typings.push(assert(this.typing(), 'Expected a name'));
+    }
+    return typings;
+  }
   protected typing(): ls.ParsedTyping | null {
     const index = this.index;
     const line = this.line();
@@ -777,6 +786,28 @@ export class Parser {
           typing = { type: 'CONSTANT', value: constant.value };
         } else if (name) {
           typing = { name, type: 'NAME' };
+        } else if (this.string('(')) {
+          const index2 = this.index;
+          const argList = this.typedNameList(true) || [];
+          if (this.string(')') && this.string('=>')) {
+            const parameters = argList.map<ls.FunctionParameter>(v => ({
+              name: v[0],
+              parsedTyping: v[1] || undefined,
+            }));
+            let returnTypes: ls.ParsedTyping[];
+            if (this.string('(')) {
+              returnTypes = this.typeList() || [];
+              assert(this.string(')'), 'Expected `)`');
+            } else {
+              returnTypes = [assert(this.typing(), 'Expected a typing')];
+            }
+            return { parameters, returnTypes, type: 'FUNCTION' };
+          } else {
+            this.index = index2;
+          }
+          typing = this.typing();
+          assert(this.string(')'), 'Expected `)`');
+          return typing;
         } else {
           break;
         }
@@ -785,7 +816,6 @@ export class Parser {
         typing = { type: 'ARRAY', subtype: typing };
       }
     }
-    // TODO: `A | B & C` results in `(A | B) & C`, so need to "sort" it properly (see checkBinop)
     return typing;
   }
 }

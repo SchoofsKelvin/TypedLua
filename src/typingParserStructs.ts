@@ -19,7 +19,7 @@ declare module './parserStructs' {
 
 /* Typing stuff for the parser */
 
-export type ParsedTypingType = 'NAME' | 'AND' | 'OR' | 'CONSTANT' | 'ARRAY';
+export type ParsedTypingType = 'NAME' | 'AND' | 'OR' | 'CONSTANT' | 'ARRAY' | 'FUNCTION';
 
 export interface ParsedTypingBase {
   type: ParsedTypingType;
@@ -41,5 +41,10 @@ export interface ParsedTypingArray extends ParsedTypingBase {
   type: 'ARRAY';
   subtype: ParsedTyping;
 }
+export interface ParsedTypingFunction extends ParsedTypingBase {
+  type: 'FUNCTION';
+  parameters: FunctionParameter[];
+  returnTypes: ParsedTyping[];
+}
 
-export type ParsedTyping = ParsedTypingName | ParsedTypingAndOr | ParsedTypingConstant | ParsedTypingArray;
+export type ParsedTyping = ParsedTypingName | ParsedTypingAndOr | ParsedTypingConstant | ParsedTypingArray | ParsedTypingFunction;
