@@ -170,9 +170,11 @@ export class Unparser {
           this.currentLine += ', ';
           this.unparseExpression(e);
         });
-        this.currentLine += ' = ';
         first = expr.expressions[0];
-        if (first) this.unparseExpression(first);
+        if (first) {
+          this.currentLine += ' = ';
+          this.unparseExpression(first);
+        }
         expr.expressions.slice(1).forEach((e) => {
           this.currentLine += ', ';
           this.unparseExpression(e);
@@ -250,7 +252,7 @@ export class Unparser {
           this.unparseExpression(expr.variable);
         }
         this.currentLine += '(';
-        this.currentLine += expr.parameters.join(', ');
+        this.currentLine += expr.parameters.map(v => v.name).join(', ');
         this.currentLine += ')';
         this.unparseExpressions(expr.chunk.block);
         this.ensureLine(this.line(expr.endIndex));

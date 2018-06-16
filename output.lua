@@ -9,7 +9,7 @@ print("hi")
 
 A = 123
 
-local function a([object Object], [object Object], [object Object])
+local function a(p1, p2, ...)
 	print('b')
 end
 local function a()
@@ -20,14 +20,14 @@ end
 --[[ LOGGING ]]--[[]]
 
 
-local TostringValue, TupleToString, List, pprint = do
+local TostringValue, TupleToString, List, pprint do
 	local tostring, pcall = tostring, pcall
-	local function doPathKey([object Object])
+	local function doPathKey(key)
 		if type(key) == "string" and key:find("^[%a_][%w_]*$")then
 			return'.' .. key
 		end return'[' .. TostringValue(key, true) .. ']'
 	end local prims = {["boolean"] = true["number"] = true["string"] = true["userdata"] = true}
-	function TostringValue([object Object], [object Object], [object Object], [object Object])
+	function TostringValue(val, short, tab, inline)
 		tab = tab or 0
 		local typ = type(val)
 		local tss, ts = pcall(tostring, val)
@@ -72,13 +72,13 @@ local TostringValue, TupleToString, List, pprint = do
 		
 		else return prefix .. typ .. '\32' .. ts end
 	end
-	function TupleToString([object Object])
+	function TupleToString(...)
 		local res = {...}
 		for i = 1, select('#', ...) do
 			res[i] = TostringValue(res[i])
 		end return table.concat(res, ",\32")
 	end
-	function List([object Object])print()
+	function List(tab)print()
 		for k, v in pairs(tab) do
 			print("-\32[" .. TostringValue(k, true) .. "]\32=", TostringValue(v, true) .. ';')
 		end
@@ -105,7 +105,7 @@ local TostringValue, TupleToString, List, pprint = do
 		end
 	end
 	BLOCKS = 0
-	function pprint([object Object])
+	function pprint(...)
 		print('[' .. level() .. '|' .. BLOCKS .. ']', TupleToString(...))
 	end
 end
@@ -114,7 +114,7 @@ function a()
 	out:write()
 end
 
-local function cprint([object Object], [object Object], [object Object])
+local function cprint(txt, col, maxl)
 	local out = io.open("out.ps1", 'w')
 	local ln, nl = 1
 	txt = txt:gsub('\n', "\32\n")
@@ -130,7 +130,7 @@ local function cprint([object Object], [object Object], [object Object])
 	--[[os.execute("powershell write-host -NoNewline -foreground "..col.." "..test)]]
 end
 
-local function splitprint([object Object], [object Object])
+local function splitprint(txt, i)
 	local begin, lns = txt:sub(1, i - 1), {}
 	for line in begin:gmatch("[^\n]+") do
 		lns[ #lns + 1] = line
@@ -141,7 +141,7 @@ end
 
 --[[ PARSER ]]--[[]]
 
-local function map([object Object])
+local function map(tab)
 	local res = {}
 	for i = 1,  #tab do
 		res[tab[i]] = true
@@ -169,7 +169,7 @@ local Binops, BinopsPriority = {
 
 
 local Parser = {}
-function Parser.new([object Object])
+function Parser.new(str)
 	local lines = {1}
 	for i = 1,  #str do
 		if str:byte(i, i) == 10 then
@@ -183,7 +183,7 @@ function Parser.new([object Object])
 end
 
 --[[ Parser stuff]]do
-	function Parser:Line([object Object])
+	function Parser:Line(i)
 		i = i or self.i
 		local lines = self.lines
 		for line =  #lines, 1,  -1 do
@@ -193,7 +193,7 @@ end
 			end
 		end error()
 	end
-	function Parser:Peek([object Object], [object Object])
+	function Parser:Peek(func, ...)
 		local old = self.i
 		return self[func](self, ...)old
 	end
@@ -221,13 +221,13 @@ end
 		while self:Comment()do end
 		return self:ActualTrim()
 	end
-	function Parser:String([object Object], [object Object])
+	function Parser:String(str, noTrim)
 		local i = noTrim and self.i or self:Trim()
 		if self.str:sub(i, i +  #str - 1) == str then
 			self.i = i +  #str return str
 		end
 	end
-	function Parser:Match([object Object], [object Object])
+	function Parser:Match(pat, noTrim)
 		local i = noTrim and self.i or self:Trim()
 		local a, b = self.str:find(pat, i)
 		if a == i then
@@ -235,10 +235,10 @@ end
 			return self.str:sub(a, b)
 		end
 	end
-	function Parser:Find([object Object], [object Object])
+	function Parser:Find(pat, plain)
 		return self.str:find(pat, self.i, plain)
 	end
-	function Parser:Keyword([object Object])
+	function Parser:Keyword(word)
 		local i, str = self:Trim(), self.str
 		local a, b = str:find("%w+", i)
 		if a == i then
@@ -253,7 +253,7 @@ end
 end
 
 --[[ Error handling]]do
-	function Parser:Assert([object Object], [object Object], [object Object])
+	function Parser:Assert(cond, err, ...)
 		if cond then return end
 		err = err:gsub("%%l", self:Line())
 		error(err:format(...))
@@ -631,7 +631,7 @@ end
 				assert(expr, "Expected\32an expression")
 				assert(self:Keyword("then"), "Expected\32`then`")
 				blocks[ #blocks + 1] = {expr(self:Block())}
-			end local otherwise = 
+			end local otherwise
 			if self:Keyword("else")then
 				otherwise = self:Block()
 			end
@@ -652,7 +652,7 @@ end
 				assert(self:String(','), "Expected\32a `,`")
 				local limit = self:Expression()
 				assert(limit, "Expected\32an expression")
-				local step = 
+				local step
 				if self:String(',')then
 					step = self:Expression()
 					assert(step, "Expected\32an expression")
@@ -771,7 +771,7 @@ end
 		else self.i = old local expr, o = self:Peek("Expression")if expr and (expr.Type == "FunctionCall" or expr.Type == "FunctionSelfCall")then return expr end self.i = o local vars = self:Varlist()if vars then assert(self:String('\61'), "Expected\32`=`")local exprs = self:Explist()assert(exprs, "Expected\32an expression")return{["Line"] = start["Type"] = "Assignment"["Variables"] = vars["Expressions"] = exprs}end self.i = o end
 		self.i = old
 	end
-	function Parser:CheckBinop([object Object])
+	function Parser:CheckBinop(expr)
 		local left = expr.Left
 		if left.Priority then
 			if left.Priority < expr.Priority then
@@ -787,7 +787,7 @@ end
 	["FunctionSelfCall"] = true
 	["Brackets"] = true}
 	
-	function Parser:PostExpression([object Object])
+	function Parser:PostExpression(prev)
 		local start = self:Line()
 		local binop, old = self:Peek("Binop")
 		local isPrefix = IsPrefix[prev.Type]
@@ -958,11 +958,11 @@ end
 	
 	end
 	local escapes = {['a'] = 'a'['b'] = '\8'['f'] = '\12'['n'] = '\n'['r'] = '\13'['t'] = '\t'['v'] = '\11'['\13'] = '\n'["\\"] = "\\\\"}
-	local function escaped([object Object])
+	local function escaped(str)
 		str = str:gsub("\\(%d%d?%d?)", string.char)
 		return
 			
-			str:gsub("\\x(%d+%d+)", function([object Object])return string.char(tonumber(c, 16))end):gsub("\\(.)", function([object Object])return escapes[c] or c end)
+			str:gsub("\\x(%d+%d+)", function(c)return string.char(tonumber(c, 16))end):gsub("\\(.)", function(c)return escapes[c] or c end)
 	end
 	function Parser:StringConstant()
 		local q = self:Match("['\"]")
@@ -1078,7 +1078,7 @@ end
 		local old = self.i
 		local prefix = self:Prefixexp()
 		if N prefix then self.i = old return end
-		local methodname = 
+		local methodname
 		if self:String(':')then
 			methodname = self:Name()
 			assert(methodname, "Expected\32a name")
@@ -1104,7 +1104,7 @@ end
 			self.i = o return
 		end return m
 	end
-	function Parser:Namelist([object Object])
+	function Parser:Namelist(vararg)
 		local name = self:Name()
 		local names = {name}
 		if name then
@@ -1166,7 +1166,7 @@ xpcall(function()
 	print("Took", os.clock() - start, "to\32parse")
 	local f = io.open("output.lua", 'w')
 	f:write(TostringValue(res))f:close()
-end, function([object Object])
+end, function(e)
 	print("ERROR:", e)
 	print("stack\32traceback:")
 	print(debug.traceback():match(".-\n.-\10(.*)"))

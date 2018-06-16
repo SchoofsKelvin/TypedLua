@@ -1,4 +1,8 @@
 
 local a = "def"
 
-local b = 
+local b
+
+function test(par, ...)
+	print(par, ...)
+end
