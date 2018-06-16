@@ -408,8 +408,6 @@ export class Parser {
           expr.right = right.left;
           right.left = expr;
           expr = right;
-        } else {
-          throw new Error('Uh, should we do something here?');
         }
       }
     }
@@ -764,6 +762,10 @@ export class Parser {
         const binop = this.string('&') || this.string('|');
         if (binop) {
           const right = assert(this.typing(), `Expected a typing`);
+          if (binop === '|' && right.type === 'AND') {
+            right.left = { type: 'OR', left: typing, right: right.left };
+            return right;
+          }
           return { right, type: binop === '|' ? 'OR' : 'AND', left: typing };
         } else {
           break;
