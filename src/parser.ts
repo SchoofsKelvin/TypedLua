@@ -388,10 +388,29 @@ export class Parser {
   }
   protected checkBinop(expr: ls.BinaryOp): ls.Expression {
     this.lastExpression = expr;
-    const left = expr.left as ls.UnaryOp | ls.BinaryOp;
-    if (left.priority) {
-      if (left.priority < expr.priority) {
-        // TODO
+    const { right } = expr;
+    /*
+      FIRST or SECOND and THIRD
+      OR(
+        left: FIRST
+        right: AND(
+          left: SECOND
+          right: THIRD
+        )
+      )
+      --> OR.right = AND.left
+      --> AND.left = OR
+      --> replace OR with AND
+    */
+    if ('priority' in right) {
+      if (right.priority < expr.priority) {
+        if (right.type === 'BinaryOp') {
+          expr.right = right.left;
+          right.left = expr;
+          expr = right;
+        } else {
+          throw new Error('Uh, should we do something here?');
+        }
       }
     }
     return this.postExpression(expr);

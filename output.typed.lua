@@ -1,4 +1,7 @@
 
+local ABC = "FIRST" or "SECOND" and "THIRD"
+
+
 local a = "def"
 
 local b

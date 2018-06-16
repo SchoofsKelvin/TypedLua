@@ -44,8 +44,8 @@ export const BINARY_OP_PRIORTY: {
   ['+']: 4, ['-']: 4,
   ['..']: 5,
   ['<=']: 6, ['<']: 6, ['>=']: 6, ['>']: 6, ['==']: 6, ['~=']: 6,
-  // or / and = 7
-  or: 7, and: 7,
+  // and = 7, or = 8
+  and: 7, or: 8,
 };
 
 export type UnaryOperation = '-' | '#' | 'not';
