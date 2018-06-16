@@ -90,7 +90,11 @@ export class Unparser {
       case 'Field':
       case 'Method':
         this.unparseExpression(expr.base);
-        if (expr.type === 'Method' || expr.name) {
+        if (expr.type === 'Method') {
+          this.currentLine += ':';
+          this.safeAppend(expr.name as string);
+        } else if (expr.name) {
+          this.currentLine += '.';
           this.safeAppend(expr.name as string);
         } else if (expr.expression) {
           this.currentLine += '[';

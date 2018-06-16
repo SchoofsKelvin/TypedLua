@@ -43,7 +43,7 @@ local TostringValue, TupleToString, List, pprint = do
 		elseif
 			if short == true then return prefix .. ts end
 			if short[val]then return prefix .. short[val]end
-			short[val] = table concat(short path)
+			short[val] = table.concat(short.path)
 			local pc, ipc, prim = 0, 0, true
 			for k, v in pairs(val) do
 				pc, prim = pc + 1, prim and prims[type(k)] and prims[type(v)]
@@ -60,14 +60,14 @@ local TostringValue, TupleToString, List, pprint = do
 			local row = (prim and "" or pre) .. "[%s]\32= %s" .. sep .. bigsep
 			for k, v in pairs(val) do
 				if type(k) ~= "number" or type(k) == "number" and k > ipc then
-					local key = TostringValue(k, true)short path[ #short path + 1] = doPathKey(k)
-					table insert(idk, row:format(key, TostringValue(v, short, prim and 0 or tab + 1, true)))
-					short path[ #short path] = nil
+					local key = TostringValue(k, true)short.path[ #short.path + 1] = doPathKey(k)
+					table.insert(idk, row:format(key, TostringValue(v, short, prim and 0 or tab + 1, true)))
+					short.path[ #short.path] = nil
 				end
 			end if pc - ipc ~= 0 and prim and idk[1]then idk[ #idk] = idk[ #idk]:sub(1,  -2)end
-			return prefix .. '{' .. bigsep .. table concat(idk) .. (prim and "" or realpre) .. '}'then
+			return prefix .. '{' .. bigsep .. table.concat(idk) .. (prim and "" or realpre) .. '}'then
 		elseif
-			return prefix .. (val Parent and val:GetFullName() or "Instance\32" .. ts)then
+			return prefix .. (val.Parent and val:GetFullName() or "Instance\32" .. ts)then
 		
 		
 		else return prefix .. typ .. '\32' .. ts end
@@ -76,7 +76,7 @@ local TostringValue, TupleToString, List, pprint = do
 		local res = {...}
 		for i = 1, select('#', ...) do
 			res[i] = TostringValue(res[i])
-		end return table concat(res, ",\32")
+		end return table.concat(res, ",\32")
 	end
 	function List(tab)print()
 		for k, v in pairs(tab) do
@@ -84,7 +84,7 @@ local TostringValue, TupleToString, List, pprint = do
 		end
 	end
 	local function path()
-		local res, trace = {}, debug traceback()
+		local res, trace = {}, debug.traceback()
 		for line in trace:gmatch("[^\n]+") do
 			local ln, fn = line:match("(%d+):\32in function '(%w+)'")
 			if ln and tonumber(ln) > 100 then
@@ -95,11 +95,11 @@ local TostringValue, TupleToString, List, pprint = do
 		end trace = {}
 		for i = 1,  #res do
 			trace[i] = res[ #res - i + 1]
-		end return table concat(trace, '\62')
+		end return table.concat(trace, '\62')
 	end
 	local function level()
 		for i = 1, 200 do
-			if N debug getinfo(i)then
+			if N debug.getinfo(i)then
 				return i
 			end
 		end
@@ -115,7 +115,7 @@ function a()
 end
 
 local function cprint(txt, col, maxl)
-	local out = io open("out.ps1", 'w')
+	local out = io.open("out.ps1", 'w')
 	local ln, nl = 1
 	txt = txt:gsub('\n', "\32\n")
 	for line in txt:gmatch("[^\n]+") do
@@ -126,7 +126,7 @@ local function cprint(txt, col, maxl)
 		out:write("write-host\32-NoNewline -Background " .. col .. "\32\"" .. line .. "\"\n")
 	end
 	out:close()
-	os execute("powershell\32-ExecutionPolicy Bypass -File out.ps1")
+	os.execute("powershell\32-ExecutionPolicy Bypass -File out.ps1")
 	--[[os.execute("powershell write-host -NoNewline -foreground "..col.." "..test)]]
 end
 
@@ -134,7 +134,7 @@ local function splitprint(txt, i)
 	local begin, lns = txt:sub(1, i - 1), {}
 	for line in begin:gmatch("[^\n]+") do
 		lns[ #lns + 1] = line
-	end begin = table concat(lns, '\n', math max( #lns - 5, 1))
+	end begin = table.concat(lns, '\n', math.max( #lns - 5, 1))
 	cprint(begin, "darkgreen" or "green")
 	cprint(txt:sub(i), "darkred" or "red", 3)print()
 end
@@ -169,7 +169,7 @@ local Binops, BinopsPriority = {
 
 
 local Parser = {}
-function Parser new(str)
+function Parser.new(str)
 	local lines = {1}
 	for i = 1,  #str do
 		if str:byte(i, i) == 10 then
@@ -183,9 +183,9 @@ function Parser new(str)
 end
 
 --[[ Parser stuff]]do
-	function Parser Line(i)
-		i = i or self i
-		local lines = self lines
+	function Parser:Line(i)
+		i = i or self.i
+		local lines = self.lines
 		for line =  #lines, 1,  -1 do
 			local start = lines[line]
 			if start <= i then
@@ -193,67 +193,67 @@ end
 			end
 		end error()
 	end
-	function Parser Peek(func, ...)
-		local old = self i
+	function Parser:Peek(func, ...)
+		local old = self.i
 		return self[func](self, ...)old
 	end
-	function Parser ActualTrim()
-		local a, b = self str:find("%s+", self i)
-		if a ~= self i then return self i true end
-		b = b + 1 self i = b return b false
+	function Parser:ActualTrim()
+		local a, b = self.str:find("%s+", self.i)
+		if a ~= self.i then return self.i true end
+		b = b + 1 self.i = b return b false
 	end
-	function Parser Comment()
+	function Parser:Comment()
 		self:ActualTrim()
 		local eq = self:Match("%-%-%[\61*%[", true)
 		if eq then
 			local start = self:Line()
-			eq = string rep('\61',  #eq - 4)
+			eq = string.rep('\61',  #eq - 4)
 			local start, stop = self:Find(']' .. eq .. ']', true)
 			assert(start, "unfinished\32long comment starting at line " .. start)
-			self i = stop + 1 return true
+			self.i = stop + 1 return true
 		elseif
 			local p = self:Find('\n', true)
 			if N p then return end
-			self i = p + 1 return true then
+			self.i = p + 1 return true then
 		end
 	end
-	function Parser Trim()
+	function Parser:Trim()
 		while self:Comment()do end
 		return self:ActualTrim()
 	end
-	function Parser String(str, noTrim)
-		local i = noTrim and self i or self:Trim()
-		if self str:sub(i, i +  #str - 1) == str then
-			self i = i +  #str return str
+	function Parser:String(str, noTrim)
+		local i = noTrim and self.i or self:Trim()
+		if self.str:sub(i, i +  #str - 1) == str then
+			self.i = i +  #str return str
 		end
 	end
-	function Parser Match(pat, noTrim)
-		local i = noTrim and self i or self:Trim()
-		local a, b = self str:find(pat, i)
+	function Parser:Match(pat, noTrim)
+		local i = noTrim and self.i or self:Trim()
+		local a, b = self.str:find(pat, i)
 		if a == i then
-			self i = b + 1
-			return self str:sub(a, b)
+			self.i = b + 1
+			return self.str:sub(a, b)
 		end
 	end
-	function Parser Find(pat, plain)
-		return self str:find(pat, self i, plain)
+	function Parser:Find(pat, plain)
+		return self.str:find(pat, self.i, plain)
 	end
-	function Parser Keyword(word)
-		local i, str = self:Trim(), self str
+	function Parser:Keyword(word)
+		local i, str = self:Trim(), self.str
 		local a, b = str:find("%w+", i)
 		if a == i then
 			local found = str:sub(a, b)
 			if found == word then
-				self i = b + 1 return found
+				self.i = b + 1 return found
 			elseif
-				self i = b + 1 return found then
+				self.i = b + 1 return found then
 			end
 		end
 	end
 end
 
 --[[ Error handling]]do
-	function Parser Assert(cond, err, ...)
+	function Parser:Assert(cond, err, ...)
 		if cond then return end
 		err = err:gsub("%%l", self:Line())
 		error(err:format(...))
@@ -479,17 +479,17 @@ end
 
 
 --[[ Syntax parsing]]do
-	function Parser Block()
+	function Parser:Block()
 		BLOCKS = BLOCKS + 1
 		local scope = {
-		["Parent"] = self scope
+		["Parent"] = self.scope
 		["Locals"] = {}
 		["Upvalues"] = {}}
 		
-		self scope = scope
+		self.scope = scope
 		local stats = {}
-		local prev = self block
-		self block = stats
+		local prev = self.block
+		self.block = stats
 		local stat, last = self:Stat()
 		while stat do
 			stats[ #stats + 1] = stat
@@ -510,23 +510,23 @@ end
 			["Expressions"] = self:Explist() or {}}then
 		
 		end
-		self block = prev
-		self scope = scope Parent
+		self.block = prev
+		self.scope = scope.Parent
 		BLOCKS = BLOCKS - 1
 		return stats scope
 	end
-	function Parser Chunk()
+	function Parser:Chunk()
 		local chunk = {}
-		self base = self base or chunk
-		local prev = self chunk
-		self chunk = chunk
-		chunk Block, chunk Scope = self:Block()
-		self chunk = prev
+		self.base = self.base or chunk
+		local prev = self.chunk
+		self.chunk = chunk
+		chunk.Block, chunk.Scope = self:Block()
+		self.chunk = prev
 		return chunk
 	end
-	function Parser Parse()
+	function Parser:Parse()
 		local ch = self:Chunk()
-		assert(self i >  #self str, "Unexpected\32symbol")
+		assert(self.i >  #self.str, "Unexpected\32symbol")
 		return ch
 	end
 	--[[
@@ -556,15 +556,15 @@ end
 	
 	
 	
-	function Parser Functionname()
+	function Parser:Functionname()
 		local start = self:Line()
 		local name = self:Name()
 		assert(name, "Expected\32a name")
 		local expr = {
 		["Line"] = start
 		["Type"] = "Variable"
-		["Scope"] = self scope
-		["ScopePosition"] =  #self scope Locals
+		["Scope"] = self.scope
+		["ScopePosition"] =  #self.scope.Locals
 		["Name"] = name}
 		
 		while self:String('.')do
@@ -588,7 +588,7 @@ end
 		
 		end return expr
 	end
-	function Parser Stat()
+	function Parser:Stat()
 		local keyword, old = self:Peek("Keyword")
 		local start = self:Line()
 		if keyword == "do"then
@@ -615,7 +615,7 @@ end
 			local block = self:Block()
 			assert(self:Keyword("until"), "Expected\32`until` to close `repeat` (line " .. start .. ')')
 			local expr = self:Expression()
-			self block[ #self block + 1] = {
+			self.block[ #self.block + 1] = {
 			["Line"] = start
 			["Type"] = "Repeat"
 			["Condition"] = expr
@@ -700,10 +700,10 @@ end
 			
 			
 			
-			func Variable = name
-			if name Type == "Method"
+			func.Variable = name
+			if name.Type == "Method"
 			--[[table.insert(func.Parameters,1,"self")]]then
-				table insert(func Chunk Scope Locals, 1, "self")
+				table.insert(func.Chunk.Scope.Locals, 1, "self")
 			end
 			--[[self.block[#self.block+1] = func]]
 			return func then
@@ -711,17 +711,17 @@ end
 			if self:Keyword("function")then
 				local name = self:Name()
 				assert(name, "Expected\32a name")
-				local locals = self scope Locals
+				local locals = self.scope.Locals
 				locals[ #locals + 1] = name
 				local func = self:Funcbody()
-				func Variable = {
+				func.Variable = {
 				["Line"] = start
 				["Type"] = "Variable"
-				["Scope"] = self scope
-				["ScopePosition"] =  #self scope Locals
+				["Scope"] = self.scope
+				["ScopePosition"] =  #self.scope.Locals
 				["Name"] = name}
 				
-				func Local = true
+				func.Local = true
 				--[[self.block[#self.block+1] = func]]
 				return func
 			
@@ -749,7 +749,7 @@ end
 			
 			
 			
-			else local vars, exprs = self:Namelist()assert(vars, "Expected\32a name")if self:String('\61')then exprs = self:Explist()end local locals = self scope Locals for i = 1,  #vars do local name = vars[i]vars[i] = {["Line"] = start["Type"] = "Variable"["Name"] = name["Scope"] = self scope["ScopePosition"] =  #self scope Locals}locals[ #locals + 1] = name end return{["Line"] = start["Type"] = "Assignment"["Variables"] = vars["Expressions"] = exprs or {}["Locals"] = true}end error("hi")
+			else local vars, exprs = self:Namelist()assert(vars, "Expected\32a name")if self:String('\61')then exprs = self:Explist()end local locals = self.scope.Locals for i = 1,  #vars do local name = vars[i]vars[i] = {["Line"] = start["Type"] = "Variable"["Name"] = name["Scope"] = self.scope["ScopePosition"] =  #self.scope.Locals}locals[ #locals + 1] = name end return{["Line"] = start["Type"] = "Assignment"["Variables"] = vars["Expressions"] = exprs or {}["Locals"] = true}end error("hi")
 			--[[if not keyword then]]then
 		
 		
@@ -768,13 +768,13 @@ end
 		
 		
 		
-		else self i = old local expr, o = self:Peek("Expression")if expr and (expr Type == "FunctionCall" or expr Type == "FunctionSelfCall")then return expr end self i = o local vars = self:Varlist()if vars then assert(self:String('\61'), "Expected\32`=`")local exprs = self:Explist()assert(exprs, "Expected\32an expression")return{["Line"] = start["Type"] = "Assignment"["Variables"] = vars["Expressions"] = exprs}end self i = o end
-		self i = old
+		else self.i = old local expr, o = self:Peek("Expression")if expr and (expr.Type == "FunctionCall" or expr.Type == "FunctionSelfCall")then return expr end self.i = o local vars = self:Varlist()if vars then assert(self:String('\61'), "Expected\32`=`")local exprs = self:Explist()assert(exprs, "Expected\32an expression")return{["Line"] = start["Type"] = "Assignment"["Variables"] = vars["Expressions"] = exprs}end self.i = o end
+		self.i = old
 	end
-	function Parser CheckBinop(expr)
-		local left = expr Left
-		if left Priority then
-			if left Priority < expr Priority then
+	function Parser:CheckBinop(expr)
+		local left = expr.Left
+		if left.Priority then
+			if left.Priority < expr.Priority then
 			
 			end
 		end
@@ -787,10 +787,10 @@ end
 	["FunctionSelfCall"] = true
 	["Brackets"] = true}
 	
-	function Parser PostExpression(prev)
+	function Parser:PostExpression(prev)
 		local start = self:Line()
 		local binop, old = self:Peek("Binop")
-		local isPrefix = IsPrefix[prev Type]
+		local isPrefix = IsPrefix[prev.Type]
 		if binop then
 			local right = self:Expression()
 			assert(right, "Expected\32an expression")
@@ -837,12 +837,12 @@ end
 		end
 		local args = self:Args()
 		if args then
-			if prev Type == "Method"then
+			if prev.Type == "Method"then
 				return self:PostExpression({
 					["Line"] = self:Line()
 					["Type"] = "FunctionSelfCall"
-					["Name"] = prev Name
-					["Base"] = prev Base
+					["Name"] = prev.Name
+					["Base"] = prev.Base
 					["Arguments"] = args})
 			
 			end
@@ -855,7 +855,7 @@ end
 		
 		end return prev
 	end
-	function Parser Expression()
+	function Parser:Expression()
 		local start = self:Line()
 		if self:String('(')then
 			local expr = self:Expression()
@@ -886,7 +886,7 @@ end
 				["Expression"] = expr
 				["Priority"] = 2})
 		
-		end self i = o
+		end self.i = o
 		local keyword = self:Keyword()
 		if keyword == "nil"then
 			return self:PostExpression({["Line"] = line["Type"] = "Constant"})
@@ -894,7 +894,7 @@ end
 			return self:PostExpression({["Line"] = line["Type"] = "Constant"["Value"] = true})then
 		elseif
 			return self:PostExpression({["Line"] = line["Type"] = "Constant"["Value"] = false})then
-		end self i = o
+		end self.i = o
 		local number = self:Number()
 		if number then return self:PostExpression(number)end
 		local str = self:StringConstant()
@@ -907,28 +907,28 @@ end
 				["Line"] = start
 				["Type"] = "Variable"
 				["Name"] = name
-				["Scope"] = self scope
-				["ScopePosition"] =  #self scope Locals})
+				["Scope"] = self.scope
+				["ScopePosition"] =  #self.scope.Locals})
 		
-		end self i = old
+		end self.i = old
 	end
 	local Setters = {
 	["Field"] = true
 	["Variable"] = true}
 	
-	function Parser Varlist()
+	function Parser:Varlist()
 		local var, o = self:Peek("Expression")
-		if N var then self i = o return end
-		if N Setters[var Type]then self i = o return end
+		if N var then self.i = o return end
+		if N Setters[var.Type]then self.i = o return end
 		local res = {var}
 		while self:String(',')do
 			var = self:Expression()
 			assert(var, "Expected\32a variable")
-			assert(Setters[var Type], "Expected\32a variable/field")
+			assert(Setters[var.Type], "Expected\32a variable/field")
 			res[ #res + 1] = var
 		end return res
 	end
-	function Parser Number()
+	function Parser:Number()
 		if self:String("0x")then
 			local mat = self:Match("%w+")
 			mat = tonumber(mat, 16)
@@ -959,15 +959,15 @@ end
 	end
 	local escapes = {['a'] = 'a'['b'] = '\8'['f'] = '\12'['n'] = '\n'['r'] = '\13'['t'] = '\t'['v'] = '\11'['\13'] = '\n'["\\"] = "\\\\"}
 	local function escaped(str)
-		str = str:gsub("\\(%d%d?%d?)", string char)
+		str = str:gsub("\\(%d%d?%d?)", string.char)
 		return
 			
-			str:gsub("\\x(%d+%d+)", function(c)return string char(tonumber(c, 16))end):gsub("\\(.)", function(c)return escapes[c] or c end)
+			str:gsub("\\x(%d+%d+)", function(c)return string.char(tonumber(c, 16))end):gsub("\\(.)", function(c)return escapes[c] or c end)
 	end
-	function Parser StringConstant()
+	function Parser:StringConstant()
 		local q = self:Match("['\"]")
 		if q then
-			local pos, str, esc = self i, self str
+			local pos, str, esc = self.i, self.str
 			for i = pos,  #str do
 				local c = str:sub(i, i)
 				if esc then
@@ -975,7 +975,7 @@ end
 				elseif
 					esc = true then
 				elseif
-					self i = i + 1
+					self.i = i + 1
 					esc = nil
 					return{
 						["Line"] = self:Line()
@@ -988,16 +988,16 @@ end
 		end
 		q = self:Match("%[\61*%[")
 		if N q then return end
-		local eqs, pos = q:sub(2,  -2), self i
+		local eqs, pos = q:sub(2,  -2), self.i
 		local a, b = self:Find(']' .. eqs .. ']', true)
-		self i = b + 1
+		self.i = b + 1
 		return{
 			["Line"] = self:Line()
 			["Type"] = "Constant"
-			["Value"] = self str:sub(pos, a - 1)}
+			["Value"] = self.str:sub(pos, a - 1)}
 	
 	end
-	function Parser Binop()
+	function Parser:Binop()
 		local kw = self:Keyword("and")
 		kw = kw or self:Keyword("or")
 		if kw then return kw 7 end
@@ -1008,7 +1008,7 @@ end
 			end
 		end
 	end
-	function Parser Field()
+	function Parser:Field()
 		if self:String('[')then
 			local start = self:Line()
 			local key = self:Expression()
@@ -1030,11 +1030,11 @@ end
 				["Value"] = name}
 				["Value"] = expr}
 		
-		end self i = old
+		end self.i = old
 		local expr = self:Expression()
 		return expr and {["Value"] = expr}
 	end
-	function Parser Table()
+	function Parser:Table()
 		if N self:String('{')then return end
 		local start = self:Line()
 		local content, sep = {}, true
@@ -1052,7 +1052,7 @@ end
 			["Content"] = content}
 	
 	end
-	function Parser Explist()
+	function Parser:Explist()
 		local expr = self:Expression()
 		if N expr then return end
 		local res = {expr}
@@ -1063,7 +1063,7 @@ end
 		end
 		return res
 	end
-	function Parser Args()
+	function Parser:Args()
 		local res = self:StringConstant()
 		if res then return{res}end
 		res = self:Table()
@@ -1074,10 +1074,10 @@ end
 		assert(self:String(')'), "Expected\32`)` to close `(` (line " .. start .. ')')
 		return res or {}
 	end
-	function Parser Functioncall()
-		local old = self i
+	function Parser:Functioncall()
+		local old = self.i
 		local prefix = self:Prefixexp()
-		if N prefix then self i = old return end
+		if N prefix then self.i = old return end
 		local methodname = 
 		if self:String(':')then
 			methodname = self:Name()
@@ -1085,9 +1085,9 @@ end
 		end
 		local args = self:Args()
 		if N args then
-			if prefix Arguments then
+			if prefix.Arguments then
 				return prefix
-			end self i = old return
+			end self.i = old return
 		end
 		return{
 			["Line"] = self:Line()
@@ -1097,14 +1097,14 @@ end
 			["Arguments"] = args}
 	
 	end
-	function Parser Name()
+	function Parser:Name()
 		local m, o = self:Peek("Match", "[_%a][_%w]*")
 		if N m then return end
 		if Keywords[m]then
-			self i = o return
+			self.i = o return
 		end return m
 	end
-	function Parser Namelist(vararg)
+	function Parser:Namelist(vararg)
 		local name = self:Name()
 		local names = {name}
 		if name then
@@ -1117,7 +1117,7 @@ end
 			end return names
 		end
 	end
-	function Parser Parlist()
+	function Parser:Parlist()
 		local namelist = self:Namelist(true)
 		if namelist then
 			if self:String(',')then
@@ -1128,7 +1128,7 @@ end
 			return{"..."}then
 		end return{}
 	end
-	function Parser Funcbody()
+	function Parser:Funcbody()
 		assert(self:String('('), "Expected\32`(`")
 		local params = self:Parlist()
 		assert(self:String(')'), "Expected\32`)`")
@@ -1145,8 +1145,8 @@ end
 	end
 end
 
-function Parser Splitprint()
-	splitprint(self str, self i)
+function Parser:Splitprint()
+	splitprint(self.str, self.i)
 end
 
 if ... then return Parser end
@@ -1155,24 +1155,24 @@ if ... then return Parser end
 
 --[[ TESTING ]]--[[]]
 
-local source = io open("input.lua")
+local source = io.open("input.lua")
 source = source:read("*a"), source:close()
 print("Source:",  #source)
 
-local parser = Parser new(source)
+local parser = Parser.new(source)
 xpcall(function()
-	local start = os clock()
+	local start = os.clock()
 	local res = parser:Parse()
-	print("Took", os clock() - start, "to\32parse")
-	local f = io open("output.lua", 'w')
+	print("Took", os.clock() - start, "to\32parse")
+	local f = io.open("output.lua", 'w')
 	f:write(TostringValue(res))f:close()
 end, function(e)
 	print("ERROR:", e)
 	print("stack\32traceback:")
-	print(debug traceback():match(".-\n.-\10(.*)"))
+	print(debug.traceback():match(".-\n.-\10(.*)"))
 	print("Position:", parser:Line())
 	--[[cprint(parser.str:sub(1,parser.i-1),"green")]]
 	--[[cprint(parser.str:sub(parser.i),"red",3)]]
 end)
 
-splitprint(parser str, parser i)
+splitprint(parser.str, parser.i)
