@@ -1,4 +1,6 @@
-import { TypingHolder } from './typingStructs';
+
+// Export the typed parsing structs too
+export * from './typingParserStructs';
 
 /* Constants (+ their types)*/
 
@@ -76,7 +78,6 @@ export interface ExpressionBase {
   index: number;
   /** There might be a comment right behind this expression */
   comment?: Comment;
-  typing?: TypingHolder;
 }
 
 export type Expression = Vararg | Break | Return | Variable
@@ -213,10 +214,13 @@ export interface BlockExpressionBase extends ExpressionBase {
 }
 
 /** A crafting step for Function */
+export interface FunctionParameter {
+  name: string;
+}
 export interface FunctionExpr extends BlockExpressionBase {
   type: 'Function';
   chunk: Chunk;
-  parameters: string[];
+  parameters: FunctionParameter[];
   variable?: Variable | Field | Method;
   local: boolean;
 }

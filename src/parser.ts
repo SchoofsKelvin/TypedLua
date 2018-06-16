@@ -2,6 +2,7 @@
 import * as util from 'util';
 
 import * as ls from './parserStructs';
+import './typingParserStructs';
 
 type falsy = null | undefined | false | 0;
 function assert<T>(condition: T | falsy, errorMessage?: string): T {
@@ -15,7 +16,7 @@ function stringFromMatch(match: RegExpExecArray | null) {
 
 const IS_PREFIX = ['Variable', 'Field', 'FunctionCall', 'FunctionSelfCall', 'Brackets'];
 
-const ESCAPED: {[key: string]: undefined | string} = {
+const ESCAPED: { [key: string]: undefined | string } = {
   a: '\a',
   b: '\b',
   f: '\f',
@@ -92,7 +93,7 @@ export class Parser {
     if (mat) {
       const start = this.line();
       const eq = '='.repeat(mat[0].length - 4);
-      const [a,b] = assert(this.find(`]${eq}]`, true), `Unfinished long comment starting at line ${start}`);
+      const [a, b] = assert(this.find(`]${eq}]`, true), `Unfinished long comment starting at line ${start}`);
       this.index = b + 1;
       if (this.lastExpression) {
         this.lastExpression = this.lastExpression.comment = {
@@ -264,7 +265,7 @@ export class Parser {
       case ls.Keyword.do: {
         const [block] = this.block();
         const endIndex = this.trim();
-        assert(this.keyword('end'),`Expected \`end\` to close \`do\` (line ${line})`);
+        assert(this.keyword('end'), `Expected \`end\` to close \`do\` (line ${line})`);
         return this.lastExpression = { index, endIndex, block, type: 'Do' };
       }
       case ls.Keyword.while: {
@@ -272,13 +273,13 @@ export class Parser {
         assert(this.keyword('do'), 'Expected `do`');
         const [block] = this.block();
         const endIndex = this.trim();
-        assert(this.keyword('end'),`Expected \`end\` to close \`while\` (line ${line})`);
+        assert(this.keyword('end'), `Expected \`end\` to close \`while\` (line ${line})`);
         return this.lastExpression = { index, endIndex, condition, block, type: 'While' };
       }
       case ls.Keyword.repeat: {
         const [block] = this.block();
         const untilIndex = this.trim();
-        assert(this.keyword('until'),`Expected \`until\` to close \`repeat\` (line ${line})`);
+        assert(this.keyword('until'), `Expected \`until\` to close \`repeat\` (line ${line})`);
         const condition = assert(this.expression(), 'Expected an expression');
         return this.lastExpression = { index, untilIndex, condition, block, type: 'Repeat' };
       }
@@ -298,7 +299,7 @@ export class Parser {
         const otherwise = this.keyword('else') ? this.block()[0] : undefined;
         const last = blocks.length === 1 ? 'if' : 'elseif';
         const endIndex = this.trim();
-        assert(this.keyword('end'),`Expected \`end\` to close \`${last}\` (line ${line})`);
+        assert(this.keyword('end'), `Expected \`end\` to close \`${last}\` (line ${line})`);
         return this.lastExpression = {
           index, blocks, otherwise,
           endIndex, elseIndex,
@@ -315,7 +316,7 @@ export class Parser {
           assert(this.keyword('do'), 'Expected `do`');
           const innerblock = this.block()[0];
           const endIndex = this.trim();
-          assert(this.keyword('end'),`Expected \`end\` to close \`for\` (line ${line})`);
+          assert(this.keyword('end'), `Expected \`end\` to close \`for\` (line ${line})`);
           return this.lastExpression = {
             index, limit, step, endIndex,
             type: 'NumericFor',
@@ -329,7 +330,7 @@ export class Parser {
         assert(this.keyword('do'), 'Expected `do`');
         const block = this.block()[0];
         const endIndex2 = this.trim();
-        assert(this.keyword('end'),`Expected \`end\` to close \`for\` (line ${line})`);
+        assert(this.keyword('end'), `Expected \`end\` to close \`for\` (line ${line})`);
         return this.lastExpression = {
           index, block, names, expressions,
           type: 'GenericFor',
@@ -362,16 +363,17 @@ export class Parser {
           };
           return this.lastExpression = func;
         }
-        const vars = assert(this.nameList(), 'Expected a name');
+        const vars = assert(this.typedNameList(), 'Expected a name');
         const expressions = this.string('=') ?
           assert(this.expList(), 'Expected an expression') : [];
         const scope = this.scope as ls.Scope;
         const locStart = scope.locals.length;
-        scope.locals = [...scope.locals, ...vars];
+        scope.locals = [...scope.locals, ...vars.map(v => v[0])];
         const variables = vars.map<ls.Variable>((v, k) => ({
           index, scope,
           type: 'Variable',
-          name: v,
+          name: v[0],
+          parsedTyping: v[1] || undefined,
           scopePosition: locStart + k,
           declaration: true,
         }));
@@ -412,7 +414,7 @@ export class Parser {
       assert(isPrefix, 'Unexpected symbol `[`');
       const line = this.line();
       const expression = assert(this.expression(), 'Expected an expression');
-      assert(this.string(']'),`Expected \`]\` to close \`[\` (line ${line})`);
+      assert(this.string(']'), `Expected \`]\` to close \`[\` (line ${line})`);
       return this.postExpression({
         index, expression,
         type: 'Field',
@@ -461,7 +463,7 @@ export class Parser {
     const line = this.line();
     if (this.string('(', true)) {
       const expression = assert(this.expression(), 'Expected an expression');
-      assert(this.string(')'),`Expected \`)\` to close \`(\` (line ${line})`);
+      assert(this.string(')'), `Expected \`)\` to close \`(\` (line ${line})`);
       return this.postExpression({
         index, expression,
         type: 'Brackets',
@@ -535,13 +537,13 @@ export class Parser {
     }
     let value = stringFromMatch(this.match(/\d+/, true));
     if (this.string('.', true)) {
-      const n = assert(this.match(/\d+/,true), 'Malformed number');
+      const n = assert(this.match(/\d+/, true), 'Malformed number');
       value = `${(value ? value[0] : '')}.${n}`;
     } else if (!value) {
       return null;
     }
     if (this.match(/[eE]/, true)) {
-      const n = assert(this.match(/[-\+]?\d+/,true), 'Malformed number');
+      const n = assert(this.match(/[-\+]?\d+/, true), 'Malformed number');
       value = `${value}e${n}`;
     }
     return { index, type: 'Constant', value: parseInt(value, 10) };
@@ -578,7 +580,7 @@ export class Parser {
     if (!q) return null;
     const eqs = q.length - 2;
     const pos = this.index;
-    const [a,b] = assert(this.find(`]${'='.repeat(eqs)}]`, true), 'Unfinished string');
+    const [a, b] = assert(this.find(`]${'='.repeat(eqs)}]`, true), 'Unfinished string');
     this.index = b + 1;
     return {
       type: 'Constant',
@@ -599,7 +601,7 @@ export class Parser {
     if (this.string('[')) {
       const line = this.line();
       const key = assert(this.expression(), 'Expected an expression');
-      assert(this.string(']'),`Expected \`]\` to close \`[\` (line ${line})`);
+      assert(this.string(']'), `Expected \`]\` to close \`[\` (line ${line})`);
       assert(this.string('='), 'Expected `=`');
       const value = assert(this.expression(), 'Expected an expression');
       return { key, value };
@@ -628,7 +630,7 @@ export class Parser {
       sep = !!this.match(/[,;]/);
       entry = this.tableEntry();
     }
-    assert(this.string('}'),`Expected \`}\` to close \`{\` (line ${line})`);
+    assert(this.string('}'), `Expected \`}\` to close \`{\` (line ${line})`);
     return { index, content, type: 'Table' };
   }
   protected expList(): ls.Expression[] | null {
@@ -647,7 +649,7 @@ export class Parser {
     if (!this.string('(')) return null;
     const line = this.line();
     const res = this.expList();
-    assert(this.string(')'),`Expected \`)\` to close \`(\` (line ${line})`);
+    assert(this.string(')'), `Expected \`)\` to close \`(\` (line ${line})`);
     return res || [];
   }
   protected name(): string | null {
@@ -656,6 +658,23 @@ export class Parser {
     if (match && ls.Keyword[match[0] as any] === undefined) return match[0];
     this.index = peek[1];
     return null;
+  }
+  protected typedNameList(vararg = false): [string, ls.ParsedTyping | null][] | null {
+    let name = this.name();
+    if (!name) return null;
+    let typing = this.string(':') ? assert(this.typing(), 'Expected a typing') : null;
+    const names: [string, ls.ParsedTyping | null][] = [[name, typing]];
+    while (this.string(',')) {
+      if (vararg && this.string('...')) {
+        typing = this.string(':') ? assert(this.typing(), 'Expected a typing') : null;
+        names.push(['...', typing]);
+        break;
+      }
+      name = assert(this.name(), 'Expected a name');
+      typing = this.string(':') ? assert(this.typing(), 'Expected a typing') : null;
+      names.push([name, typing]);
+    }
+    return names;
   }
   protected nameList(vararg = false): string[] | null {
     let name = this.name();
@@ -671,16 +690,20 @@ export class Parser {
     }
     return names;
   }
-  protected parList(): string[] {
-    const nameList = this.nameList(true);
+  protected parList(): ls.FunctionParameter[] {
+    const para: ls.FunctionParameter = null!;
+    const nameList = this.typedNameList(true);
     if (nameList) {
-      if (this.string(',')) {
-        assert(this.string('...'), 'Expected `...`');
-        nameList.push('...');
-      }
-      return nameList;
+      return nameList.map<ls.FunctionParameter>(v => ({
+        name: v[0],
+        parsedTyping: v[1] || undefined,
+      }));
     }
-    return this.string('...') ? ['...'] : [];
+    if (this.string('...')) {
+      const parsedTyping = this.string(':') ? assert(this.typing(), 'Expected a typing') : undefined;
+      return [{ parsedTyping, name: '...' }];
+    }
+    return [];
   }
   protected funcBody(): ls.FunctionExpr {
     const index = this.index;
@@ -690,12 +713,59 @@ export class Parser {
     const line = this.line();
     const chunk = this.chunk();
     const endIndex = this.trim();
-    assert(this.keyword('end'),`Expected \`end\` for function (line ${line})`);
+    assert(this.keyword('end'), `Expected \`end\` for function (line ${line})`);
     return {
       index, chunk, parameters, endIndex,
       type: 'Function',
       local: false,
     };
+  }
+  protected constant(): ls.Constant | null {
+    const index = this.index;
+    const constant = this.number() || this.stringConstant();
+    if (constant) return constant;
+    const keyword = this.keyword();
+    switch (keyword) {
+      case ls.Keyword.nil:
+        return { index, type: 'Constant', value: null };
+      case ls.Keyword.true:
+        return { index, type: 'Constant', value: true };
+      case ls.Keyword.false: {
+        return { index, type: 'Constant', value: false };
+      }
+    }
+    return null;
+  }
+  protected typing(): ls.ParsedTyping | null {
+    const index = this.index;
+    const line = this.line();
+    let typing: ls.ParsedTyping | null = null;
+    while (true) {
+      if (typing) {
+        const binop = this.string('&') || this.string('|');
+        if (binop) {
+          const right = assert(this.typing(), `Expected a typing`);
+          return { right, type: binop === '|' ? 'OR' : 'AND', left: typing };
+        } else {
+          break;
+        }
+      } else {
+        const constant = this.constant();
+        const name = constant ? null : this.name();
+        if (constant) {
+          typing = { type: 'CONSTANT', value: constant.value };
+        } else if (name) {
+          typing = { name, type: 'NAME' };
+        } else {
+          break;
+        }
+      }
+      while (this.match(/\[\s*\]/)) {
+        typing = { type: 'ARRAY', subtype: typing };
+      }
+    }
+    // TODO: `A | B & C` results in `(A | B) & C`, so need to "sort" it properly (see checkBinop)
+    return typing;
   }
 }
 
