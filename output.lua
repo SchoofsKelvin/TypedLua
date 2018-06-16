@@ -1174,3 +1174,5 @@ end, function(e)
 	--[[cprint(parser.str:sub(1,parser.i-1),"green")]]
 	--[[cprint(parser.str:sub(parser.i),"red",3)]]
 end)
+
+splitprint(parser str, parser i)

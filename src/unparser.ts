@@ -30,6 +30,8 @@ export class Unparser {
     this.unparseComment(this.chunk.startComment);
     this.indent = -1;
     this.unparseExpressions(this.chunk.block);
+    this.indent = 0;
+    this.nextLine();
     return this.lines.join('\n');
   }
   public line(index: number): number {
