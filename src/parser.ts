@@ -185,6 +185,7 @@ export class Parser {
     }
     const index = this.trim();
     if (this.keyword('break')) {
+      this.string(';');
       stats.push(this.lastExpression = { index, type: 'Break' });
     } else if (this.keyword('return')) {
       stats.push(this.lastExpression = {
@@ -192,6 +193,7 @@ export class Parser {
         type: 'Return',
         expressions: this.expList() || [],
       });
+      this.string(';');
     }
     this.currrentBlock = prev;
     this.scope = scope.parent;
@@ -478,6 +480,8 @@ export class Parser {
   protected expression(): ls.Expression | null {
     const index = this.trim();
     const line = this.line();
+    const lambda = this.lambda();
+    if (lambda) return lambda;
     if (this.string('(', true)) {
       const expression = assert(this.expression(), 'Expected an expression');
       assert(this.string(')'), `Expected \`)\` to close \`(\` (line ${line})`);
@@ -517,7 +521,7 @@ export class Parser {
     if (exp) return this.lastExpression = exp;
     exp = this.number() || this.stringConstant();
     if (exp) return this.postExpression(exp);
-    const [name] = this.peek(this.name);
+    const name = this.name();
     if (name) {
       const scope = this.scope as ls.Scope;
       return this.postExpression({
@@ -722,6 +726,68 @@ export class Parser {
     }
     return [];
   }
+  protected lambda(): ls.FunctionExpr | null {
+    let index = this.index;
+    let parameters!: ls.FunctionParameter[];
+    if (this.string('(')) {
+      const argList = this.typedNameList(true) || [];
+      parameters = argList.map<ls.FunctionParameter>(v => ({
+        name: v[0],
+        parsedTyping: v[1] || undefined,
+      }));
+      if (!this.string(')')) {
+        this.index = index;
+        return null;
+      }
+    } else {
+      const name = this.name();
+      if (name) parameters = [{ name }];
+    }
+    if (!parameters || !this.string('=>')) {
+      this.index = index;
+      return null;
+    }
+    if (this.string('{')) {
+      const line = this.line();
+      const chunk = this.chunk();
+      const endIndex = this.trim();
+      assert(this.string('}'), `Expected \`}\` for lambda (line ${line})`);
+      return {
+        index, chunk, parameters, endIndex,
+        type: 'Function',
+        local: false,
+      };
+    } else if (this.keyword('do')) {
+      const line = this.line();
+      const chunk = this.chunk();
+      const endIndex = this.trim();
+      assert(this.keyword('end'), `Expected \`end\` for lambda (line ${line})`);
+      return {
+        index, chunk, parameters, endIndex,
+        type: 'Function',
+        local: false,
+      };
+    }
+    index = this.index;
+    const brackets = this.string('(');
+    let block = assert(this.expList() || (brackets ? [] : null), 'Expected an expression');
+    assert(!brackets || this.string(')'), 'Expected `)`');
+    block = block.length ? [{
+      index,
+      type: 'Return',
+      expressions: block,
+    }] : [];
+    return {
+      index, parameters,
+      endIndex: index,
+      type: 'Function',
+      local: false,
+      chunk: {
+        block,
+        scope: this.scope!,
+      },
+    };
+  }
   protected funcBody(): ls.FunctionExpr {
     const index = this.index;
     assert(this.string('('), 'Expected `(`');
@@ -762,6 +828,36 @@ export class Parser {
     }
     return typings;
   }
+  protected lambdaTyping(): ls.ParsedTypingFunction | null {
+    const index = this.index;
+    let parameters!: ls.FunctionParameter[];
+    if (this.string('(')) {
+      const argList = this.typedNameList(true) || [];
+      parameters = argList.map<ls.FunctionParameter>(v => ({
+        name: v[0],
+        parsedTyping: v[1] || undefined,
+      }));
+      if (!this.string(')')) {
+        this.index = index;
+        return null;
+      }
+    } else {
+      const name = this.name();
+      if (name) parameters = [{ name }];
+    }
+    if (!parameters || !this.string('=>')) {
+      this.index = index;
+      return null;
+    }
+    let returnTypes: ls.ParsedTyping[];
+    if (this.string('(')) {
+      returnTypes = this.typeList() || [];
+      assert(this.string(')'), 'Expected `)`');
+    } else {
+      returnTypes = [assert(this.typing(), 'Expected a typing')];
+    }
+    return { parameters, returnTypes, type: 'FUNCTION' };
+  }
   protected typing(): ls.ParsedTyping | null {
     const index = this.index;
     const line = this.line();
@@ -780,36 +876,23 @@ export class Parser {
           break;
         }
       } else {
-        const constant = this.constant();
-        const name = constant ? null : this.name();
-        if (constant) {
-          typing = { type: 'CONSTANT', value: constant.value };
-        } else if (name) {
-          typing = { name, type: 'NAME' };
+        const lambda = this.lambdaTyping();
+        if (lambda) {
+          typing = lambda;
         } else if (this.string('(')) {
-          const index2 = this.index;
-          const argList = this.typedNameList(true) || [];
-          if (this.string(')') && this.string('=>')) {
-            const parameters = argList.map<ls.FunctionParameter>(v => ({
-              name: v[0],
-              parsedTyping: v[1] || undefined,
-            }));
-            let returnTypes: ls.ParsedTyping[];
-            if (this.string('(')) {
-              returnTypes = this.typeList() || [];
-              assert(this.string(')'), 'Expected `)`');
-            } else {
-              returnTypes = [assert(this.typing(), 'Expected a typing')];
-            }
-            return { parameters, returnTypes, type: 'FUNCTION' };
-          } else {
-            this.index = index2;
-          }
           typing = this.typing();
           assert(this.string(')'), 'Expected `)`');
           return typing;
         } else {
-          break;
+          const constant = this.constant();
+          const name = constant ? null : this.name();
+          if (constant) {
+            typing = { type: 'CONSTANT', value: constant.value };
+          } else if (name) {
+            typing = { name, type: 'NAME' };
+          } else {
+            break;
+          }
         }
       }
       while (this.match(/\[\s*\]/)) {

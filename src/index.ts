@@ -4,6 +4,7 @@ import * as fs from 'fs';
 import Parser from './parser';
 import Unparser from './unparser';
 
+/*
 try { // Lua 5.1
   const source = fs.readFileSync('input.lua', 'utf-8');
   const parser = new Parser(source);
@@ -14,6 +15,7 @@ try { // Lua 5.1
   fs.writeFileSync('output.lua', uhu, 'utf-8');
   console.log('Output written to output.lua');
 } catch (e) { console.error(e); }
+*/
 
 try { // Typed Lua 5.1
   const source = fs.readFileSync('input.typed.lua', 'utf-8');
