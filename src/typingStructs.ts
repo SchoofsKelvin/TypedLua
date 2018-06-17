@@ -120,6 +120,7 @@ export function canCastTuple(from: Typing[], to: Typing[], toVararg?: TypingArra
   while (from.length || to.length) {
     const t = to.shift();
     const f = from.shift();
+    if (!t && !toVararg) return true;
     if (t && f) {
       if (!t.canCastFrom(f)) return false;
     } else if (f && toVararg) {

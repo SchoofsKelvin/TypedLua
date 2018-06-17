@@ -16,6 +16,8 @@ local func9: (arg1: string, arg2) => (number | string & 123, 456)		= (arg1: stri
 	}
 local func10 = () => do return 123, 456 end
 
+local funcWrongType: () => number = () => true;
+
 local a: 'abc' = 'def';
 
 local b: number | string & Something;
