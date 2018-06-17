@@ -1,8 +1,5 @@
 
-import * as util from 'util';
-
 import * as ls from './parserStructs';
-import './typingParserStructs';
 
 type falsy = null | undefined | false | 0;
 function assert<T>(condition: T | falsy, errorMessage?: string): T {
@@ -688,7 +685,7 @@ export class Parser {
     while (this.string(',')) {
       if (vararg && this.string('...')) {
         typing = this.string(':') ? assert(this.typing(), 'Expected a typing') : null;
-        names.push(['...', typing]);
+        names.push(['...', typing && { type: 'VARARG', subtype: typing }]);
         break;
       }
       name = assert(this.name(), 'Expected a name');
@@ -721,17 +718,18 @@ export class Parser {
       }));
     }
     if (this.string('...')) {
-      const parsedTyping = this.string(':') ? assert(this.typing(), 'Expected a typing') : undefined;
+      let parsedTyping = this.string(':') ? assert(this.typing(), 'Expected a typing') : undefined;
+      parsedTyping = parsedTyping && { type: 'VARARG', subtype: parsedTyping };
       return [{ parsedTyping, name: '...' }];
     }
     return [];
   }
   protected lambda(): ls.FunctionExpr | null {
     let index = this.index;
-    let parameters!: ls.FunctionParameter[];
+    let params!: ls.FunctionParameter[];
     if (this.string('(')) {
       const argList = this.typedNameList(true) || [];
-      parameters = argList.map<ls.FunctionParameter>(v => ({
+      params = argList.map<ls.FunctionParameter>(v => ({
         name: v[0],
         parsedTyping: v[1] || undefined,
       }));
@@ -741,12 +739,13 @@ export class Parser {
       }
     } else {
       const name = this.name();
-      if (name) parameters = [{ name }];
+      if (name) params = [{ name }];
     }
-    if (!parameters || !this.string('=>')) {
+    if (!params || !this.string('=>')) {
       this.index = index;
       return null;
     }
+    const [parameters, parsedVarargTyping] = this.splitVararg(params);
     if (this.string('{')) {
       const line = this.line();
       const chunk = this.chunk();
@@ -754,6 +753,7 @@ export class Parser {
       assert(this.string('}'), `Expected \`}\` for lambda (line ${line})`);
       return {
         index, chunk, parameters, endIndex,
+        parsedVarargTyping: parsedVarargTyping || undefined,
         type: 'Function',
         local: false,
       };
@@ -764,6 +764,7 @@ export class Parser {
       assert(this.keyword('end'), `Expected \`end\` for lambda (line ${line})`);
       return {
         index, chunk, parameters, endIndex,
+        parsedVarargTyping: parsedVarargTyping || undefined,
         type: 'Function',
         local: false,
       };
@@ -779,6 +780,7 @@ export class Parser {
     }] : [];
     return {
       index, parameters,
+      parsedVarargTyping: parsedVarargTyping || undefined,
       endIndex: index,
       type: 'Function',
       local: false,
@@ -788,17 +790,39 @@ export class Parser {
       },
     };
   }
+  protected splitVararg(params: ls.FunctionParameter[]): [ls.FunctionParameter[], ls.ParsedTypingVararg | null] {
+    params = params.slice(0);
+    const last = params.pop();
+    if (!last) return [params, null];
+    if (last.name.endsWith('...')) {
+      if (last.parsedTyping) {
+        if (last.parsedTyping.type !== 'VARARG') {
+          throw new Error('This should not happen?');
+        }
+        /*if (last.parsedTyping.type === 'VARARG') {
+          return [params, { type: 'VARARG', subtype: last.parsedTyping.subtype }];
+        }
+        return [params, { type: 'VARARG', subtype: last.parsedTyping }];*/
+        return [params, last.parsedTyping];
+      }
+    } else {
+      params.push(last);
+    }
+    return [params, null];
+  }
   protected funcBody(): ls.FunctionExpr {
     const index = this.index;
     assert(this.string('('), 'Expected `(`');
-    const parameters = this.parList();
+    const params = this.parList();
     assert(this.string(')'), 'Expected `)`');
     const line = this.line();
     const chunk = this.chunk();
     const endIndex = this.trim();
     assert(this.keyword('end'), `Expected \`end\` for function (line ${line})`);
+    const [parameters, parsedVarargTyping] = this.splitVararg(params);
     return {
       index, chunk, parameters, endIndex,
+      parsedVarargTyping: parsedVarargTyping || undefined,
       type: 'Function',
       local: false,
     };

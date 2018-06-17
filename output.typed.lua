@@ -1,27 +1,59 @@
 
 local ABC = "FIRST"--[[string]] or "SECOND"--[[string]] and "THIRD"--[[string]]
 
+--[[
+local func1: () => ()													= () => {}
+local func2: () => number												= () => 123
+local func3: () => (number)												= () => (123)
+local func4: arg1 => (1,2,3)											= arg1 => (1,2,3)
+local func5: (arg1) => ()												= (arg1) => ()
+local func6: (arg1, arg2: number) => number								=  (arg1, arg2: number) => 123
+local func7: (arg1, arg2: number, ...: number[]) => (number)			= (arg1, arg2: number, ...: number[]) => (123)
+local func8: (arg1: string) => (1,2,3)									= (arg1: string) => (1,2,3)
+local func9: (arg1: string, arg2) => (number | string & 123, 456)		= (arg1: string, arg2) => {
+		print('This is a whole block!');
+		return 123, 456;
+	}
+local func10 = () => do return 123, 456 end
 
-local func1--[[() => ()]] = function()end
-local func2--[[() => (number)]] = function()return 123--[[number]]end
-local func3--[[() => (number)]] = function()return 123--[[number]]end
-local func4--[[(arg1: any) => (1, 2, 3)]] = function(arg1)return 1--[[number]], 2--[[number]], 3--[[number]]end
-local func5--[[(arg1: any) => ()]] = function(arg1)end
-local func6--[[(arg1: any, arg2: number) => (number)]] = function(arg1, arg2)return 123--[[number]]end
-local func7--[[(arg1: any, arg2: number, ...: number[], ...: number[]) => (number)]] = function(arg1, arg2, ...)return 123--[[number]]end
-local func8--[[(arg1: string) => (1, 2, 3)]] = function(arg1)return 1--[[number]], 2--[[number]], 3--[[number]]end
-local func9--[[(arg1: string, arg2: any) => (number | string & 123, 456)]] = function(arg1, arg2)
-	print("This is a whole block!"--[[string]])
-	return 123--[[number]], 456--[[number]]
-end
-local func10 = function()return 123--[[number]], 456--[[number]]end
+local funcWrongType: () => number = () => true;
 
-local funcWrongType--[[() => (number)]] = function()return true--[[true]]end
+local a: 'abc' = 'def';
 
-local a--[['abc']] = "def"--[[string]]
+local b: number | string & Something;
+--]]
 
-local b--[[number | string & any]]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 function test(par, ...)
-	print(par, ...)
-end
+	print(par, ...--[[string[]...]])
+	return"abc"--[[string]], nil--[[null]], ...--[[string[]...]]
+end--[[test(par: string) => (string, null, string[]...)]]
+
+function test2(abc)
+	if abc then
+		return 123--[[number]]
+	end
+	return"abc"--[[string]]
+end--[[test2(abc: any) => (number | string)]]
+
+local a--[['not abc']] = "abc"--[[string]]
+local b--[[string]] = 123--[[number]]

@@ -86,7 +86,7 @@ export class Unparser {
   }
   protected unparseExpression(expr: ls.Expression): void {
     this.unparseExpressionForReal(expr);
-    if (expr.typing) {
+    if ('typing' in expr && expr.typing) {
       const text = expr.typing.typing.toString().replace(/\r$/, '');
       let amount = 0;
       while (longStringThing(text, amount)) amount += 1;
@@ -276,6 +276,10 @@ export class Unparser {
         }
         this.currentLine += '(';
         this.currentLine += expr.parameters.map(v => v.name).join(', ');
+        if (expr.varargTyping) {
+          if (expr.parameters.length) this.currentLine += ', ';
+          this.currentLine += '...';
+        }
         this.currentLine += ')';
         this.unparseExpressions(expr.chunk.block);
         this.ensureLine(this.line(expr.endIndex));

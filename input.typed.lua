@@ -1,7 +1,7 @@
 
 local ABC = "FIRST" or "SECOND" and "THIRD"
 
-
+--[==[
 local func1: () => ()													= () => {}
 local func2: () => number												= () => 123
 local func3: () => (number)												= () => (123)
@@ -21,7 +21,19 @@ local funcWrongType: () => number = () => true;
 local a: 'abc' = 'def';
 
 local b: number | string & Something;
+--]==]
 
 function test(par: string, ...: string[])
 	print(par, ...)
+	return 'abc', nil, ...
 end
+
+function test2(abc)
+	if abc then
+		return 123
+	end
+	return 'abc';
+end
+
+local a: 'not abc' = 'abc';
+local b: string = 123;

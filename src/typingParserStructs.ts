@@ -1,16 +1,42 @@
 
-import { TypingHolder } from './typingStructs';
+import { Typing, TypingFunction, TypingHolder, TypingVararg } from './typingStructs';
 
 import { ExpressionBase, FunctionParameter } from './parserStructs';
 
 // Add some typing to some parsing things
 
 declare module './parserStructs' {
+
+  // Maybe not the best move to add to everything? eh
   export interface ExpressionBase {
     typing?: TypingHolder;
     parsedTyping?: ParsedTyping;
   }
+  /*
+  Definitely needed by:
+  - FunctionParameter
+  - Constant
+  - Field
+  - Variable
+  */
 
+  export interface FunctionExpr {
+    typing?: TypingHolder<TypingFunction>;
+    parsedTyping?: ParsedTyping;
+    varargTyping?: TypingHolder<TypingVararg>;
+    parsedVarargTyping?: ParsedTypingVararg;
+  }
+
+  export interface Return {
+    typing?: undefined;
+    returnTypes?: Typing[];
+  }
+
+  export interface Vararg {
+    typing?: TypingHolder<TypingVararg>;
+  }
+
+  // Isn't an expression, so doesn't inherit
   export interface FunctionParameter {
     typing?: TypingHolder;
     parsedTyping?: ParsedTyping;
@@ -19,7 +45,7 @@ declare module './parserStructs' {
 
 /* Typing stuff for the parser */
 
-export type ParsedTypingType = 'NAME' | 'AND' | 'OR' | 'CONSTANT' | 'ARRAY' | 'FUNCTION';
+export type ParsedTypingType = 'NAME' | 'AND' | 'OR' | 'CONSTANT' | 'ARRAY' | 'FUNCTION' | 'VARARG';
 
 export interface ParsedTypingBase {
   type: ParsedTypingType;
@@ -46,5 +72,9 @@ export interface ParsedTypingFunction extends ParsedTypingBase {
   parameters: FunctionParameter[];
   returnTypes: ParsedTyping[];
 }
+export interface ParsedTypingVararg extends ParsedTypingBase {
+  type: 'VARARG';
+  subtype: ParsedTyping;
+}
 
-export type ParsedTyping = ParsedTypingName | ParsedTypingAndOr | ParsedTypingConstant | ParsedTypingArray | ParsedTypingFunction;
+export type ParsedTyping = ParsedTypingName | ParsedTypingAndOr | ParsedTypingConstant | ParsedTypingArray | ParsedTypingFunction | ParsedTypingVararg;
