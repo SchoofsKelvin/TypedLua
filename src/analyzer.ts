@@ -32,6 +32,11 @@ export class AnalyzingWalker extends Walker {
   protected flow = new FunctionFlow();
   protected locals = new ScopeVariables();
   protected diagnostics: Diagnostic[] = [];
+  /* Getters / Setters */
+  public getDiagnostics(): Diagnostic[] {
+    return this.diagnostics.slice(0);
+  }
+  /* Main stuff */
   public analyzeMainChunk(chunk: ls.MainChunk) {
     chunk.block.forEach(this.walkExpression, this);
   }
@@ -46,7 +51,7 @@ export class AnalyzingWalker extends Walker {
       case 'NAME': {
         const typing = this.flow.getTyping(parsed.name);
         if (typing) return typing;
-        this.logDiagnosticError(DiagnosticCode.ERROR_UNKNOWN_TYPE, index);
+        this.logDiagnosticError(DiagnosticCode.ERROR_UNKNOWN_TYPE, index, `Unknown type '${parsed.name}'`);
         return { typing: ts.ANY, explicit: false };
       }
       case 'ARRAY':
@@ -139,7 +144,8 @@ export class AnalyzingWalker extends Walker {
       const curType = v.typing && v.typing.typing;
       if (curType) {
         if (!value.typing.typing.canCastFrom(curType)) {
-          this.logDiagnosticError(DiagnosticCode.ERROR_CANNOT_CAST, value.index);
+          const msg = `Cannot cast ${curType} to ${value.typing.typing}`;
+          this.logDiagnosticError(DiagnosticCode.ERROR_CANNOT_CAST, value.index, msg);
         }
       }
       this.flow.setVariableType(v.name, value.typing);

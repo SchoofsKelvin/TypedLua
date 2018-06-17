@@ -25,6 +25,8 @@ try { // Typed Lua 5.1
   console.log(idk);
   const analyzer = new AnalyzingWalker();
   analyzer.analyzeMainChunk(idk);
+  const diags = analyzer.getDiagnostics();
+  diags.forEach(d => console.error(`${d.code} (line ${parser.line(d.index)}) ${d.message || ''}`));
   const unparser = new Unparser(idk);
   const uhu = unparser.unparse();
   fs.writeFileSync('output.typed.lua', uhu, 'utf-8');

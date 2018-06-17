@@ -86,7 +86,7 @@ export class TypingConstant {
     return typing instanceof TypingConstant && typing.value === this.value;
   }
   public toString(): string {
-    return `${this.value}`;
+    return typeof this.value === 'string' ? `'${this.value}'` : `${this.value}`;
   }
 }
 
