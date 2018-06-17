@@ -1,6 +1,7 @@
 
 import * as fs from 'fs';
 
+import { AnalyzingWalker } from './analyzer';
 import Parser from './parser';
 import Unparser from './unparser';
 
@@ -22,6 +23,8 @@ try { // Typed Lua 5.1
   const parser = new Parser(source);
   const idk = parser.parse();
   console.log(idk);
+  const analyzer = new AnalyzingWalker();
+  analyzer.analyzeMainChunk(idk);
   const unparser = new Unparser(idk);
   const uhu = unparser.unparse();
   fs.writeFileSync('output.typed.lua', uhu, 'utf-8');

@@ -24,7 +24,7 @@ export interface IWalker {
   walkBrackets: walkType<ls.Brackets>;
   walkConstant: walkType<ls.Constant>;
   walkTable: walkType<ls.Table>;
-  walkFunctionExpr: walkType<ls.FunctionExpr>;
+  walkFunction: walkType<ls.FunctionExpr>;
   walkComment: walkType<ls.Comment>;
 }
 
@@ -32,7 +32,7 @@ export abstract class Walker implements IWalker {
   public walkExpression(expr: ls.Expression): void {
     const walk = (this as any)[`walk${expr.type}`] as (expr: ls.Expression) => {};
     if (!walk) throw new Error(`Couldn't find the walker for '${expr.type}'`);
-    walk(expr);
+    walk.call(this, expr);
   }
   /* IWalker methods */
   public walkVararg(expr: ls.Vararg): void {}
@@ -107,7 +107,7 @@ export abstract class Walker implements IWalker {
       this.walkExpression(value);
     });
   }
-  public walkFunctionExpr(expr: ls.FunctionExpr): void {
+  public walkFunction(expr: ls.FunctionExpr): void {
     if (expr.variable) this.walkExpression(expr.variable);
     expr.chunk.block.forEach(this.walkExpression, this);
   }

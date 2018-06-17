@@ -86,6 +86,13 @@ export class Unparser {
   }
   protected unparseExpression(expr: ls.Expression): void {
     this.unparseExpressionForReal(expr);
+    if (expr.typing) {
+      const text = expr.typing.typing.toString().replace(/\r$/, '');
+      let amount = 0;
+      while (longStringThing(text, amount)) amount += 1;
+      const eq = '='.repeat(amount);
+      this.currentLine += `--[${eq}[${text}]${eq}]`;
+    }
     this.unparseComment(expr.comment);
   }
   protected unparseExpressionForReal(expr: ls.Expression): void {

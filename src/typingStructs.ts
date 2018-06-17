@@ -1,3 +1,4 @@
+import { FunctionParameter } from './parserStructs';
 
 /* Typing "holder" */
 export interface TypingHolder {
@@ -38,7 +39,7 @@ export class TypingIntersection extends Typing {
 }
 
 export class TypingInterface extends Typing {
-  public fields: { [key: string]: Typing} = {};
+  public fields: { [key: string]: Typing } = {};
   constructor(public name: string) {
     super();
   }
@@ -62,9 +63,12 @@ export class TypingInterface extends Typing {
 }
 
 export class TypingClass extends TypingInterface {
-  public classFields: { [key: string]: Typing} = {};
+  public classFields: { [key: string]: Typing } = {};
   constructor(public name: string) {
     super(name);
+  }
+  public toString(): string {
+    return this.name;
   }
 }
 
@@ -79,7 +83,7 @@ export class TypingConstant {
     // super(typeof value);
   }
   public canCastFrom(typing: Typing): boolean {
-    return typing === this;
+    return typing instanceof TypingConstant && typing.value === this.value;
   }
   public toString(): string {
     return `${this.value}`;
@@ -98,7 +102,66 @@ export class TypingAlias extends Typing {
   }
 }
 
+export class TypingArray extends Typing {
+  constructor(public readonly subtype: Typing) {
+    super();
+  }
+  public canCastFrom(typing: Typing): boolean {
+    return typing instanceof TypingArray && this.subtype.canCastFrom(typing.subtype);
+  }
+  public toString(): string {
+    return `${this.subtype.toString()}[]`;
+  }
+}
+
+export function canCastTuple(from: Typing[], to: Typing[], toVararg?: TypingArray | null) {
+  from = from.slice(0);
+  to = to.slice(0);
+  while (from.length || to.length) {
+    const t = to.shift();
+    const f = from.shift();
+    if (t && f) {
+      if (!t.canCastFrom(f)) return false;
+    } else if (f && toVararg) {
+      if (!toVararg.subtype.canCastFrom(f)) return false;
+    } else {
+      return false;
+    }
+  }
+  return true;
+}
+
+export class TypingFunction extends Typing {
+  public parameters: FunctionParameter[] = [];
+  public vararg?: TypingArray;
+  public returnValues: Typing[] = [];
+  constructor(public name?: string) {
+    super();
+  }
+  public canCastFrom(typing: Typing): boolean {
+    if (!(typing instanceof TypingFunction)) return false;
+    const argF = typing.parameters.map(p => p.typing!.typing);
+    const argT = this.parameters.map(p => p.typing!.typing);
+    if (!canCastTuple(argF, argT, this.vararg)) return false;
+    if (!canCastTuple(typing.returnValues, this.returnValues)) return false;
+    return true;
+  }
+  public toString(): string {
+    const params = this.parameters.map(({ name, typing }, index) =>
+      `${name || `arg${index}`}: ${typing ? typing.typing : 'any'}`,
+    );
+    if (this.vararg) params.push(`...: ${this.vararg}`);
+    const ret = this.returnValues.join(', ');
+    return `${this.name || ''}(${params.join(', ')}) => (${ret})`;
+  }
+}
+
 /* Typing constants */
+
+export const ANY = new (class TypingAny extends Typing {
+  public canCastFrom(): boolean { return true; }
+  public toString(): string { return 'any'; }
+})();
 
 export const STRING = new TypingClass('string');
 export const NUMBER = new TypingClass('number');
