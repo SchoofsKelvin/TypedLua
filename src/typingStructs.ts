@@ -93,6 +93,8 @@ export class TypingInterface extends Typing {
 
 export class TypingClass extends TypingInterface {
   public classFields: { [key: string]: Typing } = {};
+  public extends?: TypingClass;
+  public implements: TypingClass[] = [];
   constructor(public name: string) {
     super(name);
   }

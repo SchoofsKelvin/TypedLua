@@ -1,7 +1,7 @@
 
-import { Typing, TypingFunction, TypingHolder, TypingVararg } from './typingStructs';
+import { Typing, TypingClass, TypingFunction, TypingHolder, TypingVararg } from './typingStructs';
 
-import { ExpressionBase, FunctionParameter } from './parserStructs';
+import * as ls from './parserStructs';
 
 // Add some typing to some parsing things
 
@@ -41,7 +41,20 @@ declare module './parserStructs' {
     typing?: TypingHolder;
     parsedTyping?: ParsedTyping;
   }
+
+  export enum Keyword {
+    class = 'CLASS',
+    extends = 'EXTENDS',
+    implements = 'IMPLEMENTS',
+  }
 }
+
+export interface Class extends ls.ExpressionBase {
+  typing?: TypingHolder<TypingClass>;
+  parsedTyping?: ParsedTyping;
+}
+
+export type Expression = ls.Expression | Class;
 
 /* Typing stuff for the parser */
 
@@ -69,12 +82,19 @@ export interface ParsedTypingArray extends ParsedTypingBase {
 }
 export interface ParsedTypingFunction extends ParsedTypingBase {
   type: 'FUNCTION';
-  parameters: FunctionParameter[];
+  parameters: ls.FunctionParameter[];
   returnTypes: ParsedTyping[];
 }
 export interface ParsedTypingVararg extends ParsedTypingBase {
   type: 'VARARG';
   subtype: ParsedTyping;
 }
+export interface ParsedTypingClass extends ParsedTypingBase {
+  name?: string;
+  extends?: ParsedTypingName;
+  implements: ParsedTypingName[];
+}
 
-export type ParsedTyping = ParsedTypingName | ParsedTypingAndOr | ParsedTypingConstant | ParsedTypingArray | ParsedTypingFunction | ParsedTypingVararg;
+export type ParsedTyping = ParsedTypingName | ParsedTypingAndOr
+  | ParsedTypingConstant | ParsedTypingArray | ParsedTypingFunction
+  | ParsedTypingVararg | ParsedTypingClass;
