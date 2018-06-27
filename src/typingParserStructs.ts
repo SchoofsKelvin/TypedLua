@@ -47,18 +47,21 @@ declare module './parserStructs' {
     extends = 'EXTENDS',
     implements = 'IMPLEMENTS',
   }
+
+  export interface ExpressionTypes {
+    Class: Class;
+  }
 }
 
 export interface Class extends ls.ExpressionBase {
+  type: 'Class';
   typing?: TypingHolder<TypingClass>;
   parsedTyping?: ParsedTyping;
 }
 
-export type Expression = ls.Expression | Class;
-
 /* Typing stuff for the parser */
 
-export type ParsedTypingType = 'NAME' | 'AND' | 'OR' | 'CONSTANT' | 'ARRAY' | 'FUNCTION' | 'VARARG';
+export type ParsedTypingType = 'NAME' | 'AND' | 'OR' | 'CONSTANT' | 'ARRAY' | 'FUNCTION' | 'VARARG' | 'CLASS';
 
 export interface ParsedTypingBase {
   type: ParsedTypingType;
@@ -90,6 +93,7 @@ export interface ParsedTypingVararg extends ParsedTypingBase {
   subtype: ParsedTyping;
 }
 export interface ParsedTypingClass extends ParsedTypingBase {
+  type: 'CLASS';
   name?: string;
   extends?: ParsedTypingName;
   implements: ParsedTypingName[];

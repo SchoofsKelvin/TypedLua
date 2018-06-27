@@ -39,12 +39,12 @@ export const BINARY_OP_PRIORTY: {
   readonly [P in BinaryOperation]: number;
 } = {
   ['^']: 1,
-  // unary operators = 2
+    // unary operators = 2
   ['*']: 3, ['/']: 3, ['%']: 3,
   ['+']: 4, ['-']: 4,
   ['..']: 5,
   ['<=']: 6, ['<']: 6, ['>=']: 6, ['>']: 6, ['==']: 6, ['~=']: 6,
-  // and = 7, or = 8
+    // and = 7, or = 8
   and: 7, or: 8,
 };
 
@@ -74,17 +74,39 @@ export interface MainChunk extends Chunk {
 }
 
 export interface ExpressionBase {
-  type: string;
+  type: ExpressionType;
   index: number;
   /** There might be a comment right behind this expression */
   comment?: Comment;
 }
 
-export type Expression = Vararg | Break | Return | Variable
-  | Field | Method | Do | While | Repeat | If | NumericFor
-  | GenericFor | Assignment | UnaryOp | BinaryOp | FunctionCall
-  | FunctionSelfCall | Brackets | Constant | Table | FunctionExpr
-  | Comment;
+export interface ExpressionTypes {
+  Vararg: Vararg;
+  Break: Break;
+  Return: Return;
+  Variable: Variable;
+  Field: Field;
+  Method: Method;
+  Do: Do;
+  While: While;
+  Repeat: Repeat;
+  If: If;
+  NumericFor: NumericFor;
+  GenericFor: GenericFor;
+  Assignment: Assignment;
+  UnaryOp: UnaryOp;
+  BinaryOp: BinaryOp;
+  FunctionCall: FunctionCall;
+  FunctionSelfCall: FunctionSelfCall;
+  Brackets: Brackets;
+  Constant: Constant;
+  Table: Table;
+  Function: FunctionExpr;
+  Comment: Comment;
+}
+
+export type ExpressionType = keyof ExpressionTypes;
+export type Expression = ExpressionTypes[ExpressionType];
 
 /**
  * Used in {@link Table}
