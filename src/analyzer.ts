@@ -5,12 +5,12 @@ import * as ls from './parserStructs';
 import * as ts from './typingStructs';
 import { Walker } from './walker';
 
-interface ScopeVariable {
+export interface ScopeVariable {
   scope: ls.Scope;
   index: number;
   name: string;
 }
-class ScopeVariables {
+export class ScopeVariables {
   protected vars: ScopeVariable[] = [];
   public getVariable(scope: ls.Scope, index: number, name: string) {
     let variable = this.vars.find(v => v.scope === scope && v.index === index);
