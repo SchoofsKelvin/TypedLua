@@ -225,11 +225,19 @@ export class AnalyzingWalker extends Walker {
   }
   public walkReturn(expr: ls.Return) {
     super.walkReturn(expr);
-    expr.returnTypes = new ts.TypingTuple(expr.expressions.map(e => e.typing!.typing));
+    const returnTypes = new ts.TypingTuple(expr.expressions.map(e => e.typing!.typing));
+    expr.returnTypes = returnTypes;
     interface FuncPS { returns: ls.Return[]; }
     const func = this.findLastSegment<FuncPS>(s => s.expression.type === 'Function');
     if (!func) throw new Error('TODO: Handle return statement in main chunk');
     func.returns.push(expr);
+    // If the typing is explicit and has a return thingy, check it
+    const { returnTyping } = func.expression as ls.FunctionExpr;
+    if (!returnTyping || !returnTyping.explicit) return;
+    if (!returnTyping.typing.canCastFrom(returnTypes)) {
+      const msg = `Cannot cast ${returnTypes} to ${returnTyping.typing}`;
+      this.logDiagnosticError(DiagnosticCode.ERROR_CANNOT_CAST, expr.index, msg);
+    }
   }
   public walkVararg(expr: ls.Vararg) {
     interface FuncPS { expression: ls.FunctionExpr; }
