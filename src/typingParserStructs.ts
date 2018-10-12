@@ -30,7 +30,7 @@ declare module './parserStructs' {
 
   export interface Return {
     typing?: undefined;
-    returnTypes?: Typing[];
+    returnTypes?: TypingTuple;
   }
 
   export interface Vararg {
