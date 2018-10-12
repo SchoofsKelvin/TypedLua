@@ -25,6 +25,7 @@ declare module './parserStructs' {
     parsedTyping?: ParsedTyping;
     varargTyping?: TypingHolder<TypingVararg>;
     parsedVarargTyping?: ParsedTypingVararg;
+    returnTyping?: TypingHolder<TypingTuple>;
     parsedReturnTyping?: ParsedTypingTuple;
   }
 
@@ -71,7 +72,7 @@ export interface ParsedTypingArray extends ParsedTypingBase {
 export interface ParsedTypingFunction extends ParsedTypingBase {
   type: 'FUNCTION';
   parameters: FunctionParameter[];
-  returnTypes: ParsedTyping[];
+  returnTypes: ParsedTypingTuple;
 }
 export interface ParsedTypingVararg extends ParsedTypingBase {
   type: 'VARARG';

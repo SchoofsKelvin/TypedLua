@@ -885,13 +885,7 @@ export class Parser {
       this.index = index;
       return null;
     }
-    let returnTypes: ls.ParsedTyping[];
-    if (this.string('(')) {
-      returnTypes = this.typeList() || [];
-      assert(this.string(')'), 'Expected `)`');
-    } else {
-      returnTypes = [assert(this.typing(), 'Expected a typing')];
-    }
+    const returnTypes = assert(this.typeTuple(), 'Expected a typing');
     return { parameters, returnTypes, type: 'FUNCTION' };
   }
   protected typing(): ls.ParsedTyping | null {

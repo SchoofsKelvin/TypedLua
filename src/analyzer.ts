@@ -97,7 +97,8 @@ export class AnalyzingWalker extends Walker {
           params.push(vararg);
         }
         params.forEach(p => p.typing = this.generateTyping(p.parsedTyping, index));
-        func.returnValues = new ts.TypingTuple(parsed.returnTypes.map(r => this.generateTyping(r, index).typing));
+        // func.returnValues = new ts.TypingTuple(parsed.returnTypes.map(r => this.generateTyping(r, index).typing));
+        func.returnValues = this.generateTyping(parsed.returnTypes, index).typing as ts.TypingTuple;
         return {
           typing: func,
           explicit: true,
@@ -108,7 +109,14 @@ export class AnalyzingWalker extends Walker {
         const typing = new ts.TypingVararg(subtype.typing);
         return {
           typing,
-          explicit: false,
+          explicit: true,
+        };
+      }
+      case 'TUPLE': {
+        const types = parsed.types.map(t => this.generateTyping(t, index).typing);
+        return {
+          typing: new ts.TypingTuple(types),
+          explicit: true,
         };
       }
     }
@@ -190,6 +198,9 @@ export class AnalyzingWalker extends Walker {
     });
     if (expr.parsedVarargTyping) {
       expr.varargTyping = this.generateTyping(expr.parsedVarargTyping, expr.index) as ts.TypingHolder<ts.TypingVararg>;
+    }
+    if (expr.parsedReturnTyping) {
+      expr.returnTyping = this.generateTyping(expr.parsedReturnTyping, expr.index) as ts.TypingHolder<ts.TypingTuple>;
     }
     super.walkFunction(expr);
     // Above call should've walked through all return statements
