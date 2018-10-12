@@ -97,7 +97,7 @@ export class AnalyzingWalker extends Walker {
           params.push(vararg);
         }
         params.forEach(p => p.typing = this.generateTyping(p.parsedTyping, index));
-        func.returnValues = parsed.returnTypes.map(r => this.generateTyping(r, index).typing);
+        func.returnValues = new ts.TypingTuple(parsed.returnTypes.map(r => this.generateTyping(r, index).typing));
         return {
           typing: func,
           explicit: true,
@@ -206,7 +206,7 @@ export class AnalyzingWalker extends Walker {
     params.forEach(p => p.typing = this.generateTyping(p.parsedTyping, expr.index));
     console.log(func, segm.returns);
     // TODO: Handle returning (dynamic) tuples
-    func.returnValues = ts.unionFromTuples(segm.returns.map(r => r.returnTypes!));
+    func.returnValues = new ts.TypingTuple(ts.unionFromTuples(segm.returns.map(r => r.returnTypes!.tuple)));
     expr.typing = {
       typing: func,
       explicit: true,

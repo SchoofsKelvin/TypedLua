@@ -181,7 +181,7 @@ export class TypingVararg extends Typing {
 export class TypingFunction extends Typing {
   public parameters: FunctionParameter[] = [];
   public vararg?: TypingVararg;
-  public returnValues: Typing[] = [];
+  public returnValues: TypingTuple = new TypingTuple();
   constructor(public name?: string) {
     super();
   }
@@ -190,7 +190,7 @@ export class TypingFunction extends Typing {
     const argF = typing.parameters.map(p => p.typing!.typing);
     const argT = this.parameters.map(p => p.typing!.typing);
     if (!canCastTuple(argF, argT, this.vararg)) return false;
-    if (!canCastTuple(typing.returnValues, this.returnValues)) return false;
+    if (!typing.returnValues.canCastFrom(this.returnValues)) return false;
     return true;
   }
   public toString(): string {
@@ -198,8 +198,7 @@ export class TypingFunction extends Typing {
       `${name || `arg${index}`}: ${typing ? typing.typing : 'any'}`,
     );
     if (this.vararg) params.push(`...: ${this.vararg.subtype}[]`);
-    const ret = this.returnValues.join(', ');
-    return `${this.name || ''}(${params.join(', ')}) => (${ret})`;
+    return `${this.name || ''}(${params.join(', ')}) => ${this.returnValues}`;
   }
 }
 
