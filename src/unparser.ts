@@ -51,6 +51,14 @@ export class Unparser {
     this.lines.push(this.currentLine);
     this.currentLine = '\t'.repeat(this.indent);
   }
+  protected append(str: string): void {
+    const lines = str.split('\n');
+    this.currentLine += lines[0];
+    for (let i = 1; i < lines.length; i += 1) {
+      this.nextLine();
+      this.currentLine += lines[i];
+    }
+  }
   protected ensureLine(line: number): void {
     line -= 1;
     while (this.lines.length < line) this.nextLine();
@@ -80,7 +88,7 @@ export class Unparser {
       let amount = 0;
       while (longStringThing(text, amount)) amount += 1;
       const eq = '='.repeat(amount);
-      this.currentLine += `--[${eq}[${text}]${eq}]`;
+      this.append(`--[${eq}[${text}]${eq}]`);
       expr = expr.comment;
     }
   }
@@ -91,7 +99,7 @@ export class Unparser {
       let amount = 0;
       while (longStringThing(text, amount)) amount += 1;
       const eq = '='.repeat(amount);
-      this.currentLine += `--[${eq}[${text}]${eq}]`;
+      this.append(`--[${eq}[${text}]${eq}]`);
     }
     this.unparseComment(expr.comment);
   }
@@ -243,7 +251,7 @@ export class Unparser {
             let amount = 0;
             while (longStringThing(expr.value, amount)) amount += 1;
             const eq = '='.repeat(amount);
-            this.currentLine += `[${eq}[${expr.value}]${eq}]`;
+            this.append(`[${eq}[${expr.value}]${eq}]`);
           } else if (expr.value.length === 1) {
             this.currentLine += `'${escapeString(expr.value, '\'')}'`;
           } else {

@@ -23,26 +23,6 @@ local a: 'abc' = 'def';
 local b: number | string & Something;
 --]]
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 function test(par, ...)
 	print(par, ...--[[string[]...]])
 	return"abc"--[[string]], nil--[[null]], ...--[[string[]...]]
