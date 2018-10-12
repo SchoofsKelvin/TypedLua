@@ -1,5 +1,5 @@
 
-import { Typing, TypingFunction, TypingHolder, TypingVararg } from './typingStructs';
+import { Typing, TypingFunction, TypingHolder, TypingTuple, TypingVararg } from './typingStructs';
 
 import { ExpressionBase, FunctionParameter } from './parserStructs';
 
@@ -25,6 +25,7 @@ declare module './parserStructs' {
     parsedTyping?: ParsedTyping;
     varargTyping?: TypingHolder<TypingVararg>;
     parsedVarargTyping?: ParsedTypingVararg;
+    parsedReturnTyping?: ParsedTypingTuple;
   }
 
   export interface Return {
@@ -45,7 +46,7 @@ declare module './parserStructs' {
 
 /* Typing stuff for the parser */
 
-export type ParsedTypingType = 'NAME' | 'AND' | 'OR' | 'CONSTANT' | 'ARRAY' | 'FUNCTION' | 'VARARG';
+export type ParsedTypingType = 'NAME' | 'AND' | 'OR' | 'CONSTANT' | 'ARRAY' | 'FUNCTION' | 'VARARG' | 'TUPLE';
 
 export interface ParsedTypingBase {
   type: ParsedTypingType;
@@ -77,4 +78,10 @@ export interface ParsedTypingVararg extends ParsedTypingBase {
   subtype: ParsedTyping;
 }
 
-export type ParsedTyping = ParsedTypingName | ParsedTypingAndOr | ParsedTypingConstant | ParsedTypingArray | ParsedTypingFunction | ParsedTypingVararg;
+export interface ParsedTypingTuple extends ParsedTypingBase {
+  type: 'TUPLE';
+  types: ParsedTyping[];
+}
+
+export type ParsedTyping = ParsedTypingName | ParsedTypingAndOr | ParsedTypingConstant
+  | ParsedTypingArray | ParsedTypingFunction | ParsedTypingVararg | ParsedTypingTuple;

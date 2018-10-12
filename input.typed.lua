@@ -23,7 +23,7 @@ local a: 'abc' = 'def';
 local b: number | string & Something;
 --]==]
 
-function test(par: string, ...: string[])
+function test(par: string, ...: string[]): (number, 123)
 	print(par, ...)
 	return 'abc', nil, ...
 end

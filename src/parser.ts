@@ -815,13 +815,14 @@ export class Parser {
     assert(this.string('('), 'Expected `(`');
     const params = this.parList();
     assert(this.string(')'), 'Expected `)`');
+    const parsedReturnTyping = this.string(':') && this.typeTuple() || undefined;
     const line = this.line();
     const chunk = this.chunk();
     const endIndex = this.trim();
     assert(this.keyword('end'), `Expected \`end\` for function (line ${line})`);
     const [parameters, parsedVarargTyping] = this.splitVararg(params);
     return {
-      index, chunk, parameters, endIndex,
+      index, chunk, parameters, endIndex, parsedReturnTyping,
       parsedVarargTyping: parsedVarargTyping || undefined,
       type: 'Function',
       local: false,
@@ -851,6 +852,17 @@ export class Parser {
       typings.push(assert(this.typing(), 'Expected a name'));
     }
     return typings;
+  }
+  protected typeTuple(allowBrackets = true): ls.ParsedTypingTuple | null {
+    const index = this.index;
+    const bracket = allowBrackets && this.string('(');
+    const types = this.typeList();
+    if (!types) {
+      this.index = index;
+      return null;
+    }
+    assert(!bracket || this.string(')'), 'Expected `)`');
+    return { types, type: 'TUPLE' };
   }
   protected lambdaTyping(): ls.ParsedTypingFunction | null {
     const index = this.index;
