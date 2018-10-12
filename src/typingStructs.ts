@@ -43,6 +43,23 @@ export abstract class Typing {
   public abstract toString(indent?: number): string;
 }
 
+export class TypingTuple extends Typing {
+  constructor(public tuple: Typing[] = []) {
+    super();
+  }
+  public canCastFrom(typing: Typing): boolean {
+    if (typing instanceof TypingTuple) {
+      return canCastTuple(typing.tuple, this.tuple);
+    }
+    const first = this.tuple[0];
+    if (!first) return true;
+    return first.canCastFrom(typing);
+  }
+  public toString(): string {
+    return `(${this.tuple.join(', ')})`;
+  }
+}
+
 export class TypingUnion extends Typing {
   constructor(public types: Typing[] = []) {
     super();
