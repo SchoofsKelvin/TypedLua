@@ -65,7 +65,7 @@ export class TypingUnion extends Typing {
     super();
   }
   public canCastFrom(typing: Typing): boolean {
-    return this.types.some(canCastTo.bind(typing), typing);
+    return this.types.some(canCastTo.bind(null, typing), typing);
   }
   public toString(): string {
     return this.types.join(' | ');

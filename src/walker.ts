@@ -79,8 +79,11 @@ export abstract class Walker implements IWalker {
     expr.block.forEach(this.walkExpression, this);
   }
   public walkAssignment(expr: ls.Assignment): void {
-    expr.variables.forEach(this.walkExpression, this);
+    // Changing this order should be allowed, since variables shouldn't influence the expressions
+    // but in the analyzer (walker), the walkVariable uses the typing of the expressions, so walk over those first
     expr.expressions.forEach(this.walkExpression, this);
+    expr.variables.forEach(this.walkExpression, this);
+    // expr.expressions.forEach(this.walkExpression, this);
   }
   public walkUnaryOp(expr: ls.UnaryOp): void {
     this.walkExpression(expr.expression);

@@ -124,6 +124,17 @@ export class AnalyzingWalker extends Walker {
     }
     throw new Error(`Unknown parsed type '${parsed!.type}': ${parsed}`);
   }
+  public getTyping(expr: ls.Expression, anyIfMissing?: true): ts.Typing;
+  public getTyping(expr: ls.Expression, anyIfMissing: false): ts.Typing | null;
+  public getTyping(expr: ls.Expression, anyIfMissing = true): ts.Typing | null {
+    const any = anyIfMissing ? ts.ANY : null;
+    switch (expr.type) {
+      case 'Variable':
+        const vt = this.flow.getVariableType(expr.name);
+        return vt ? vt.typing : any;
+    }
+    return expr.typing ? expr.typing.typing : any;
+  }
   /* Expression walkers */
   public walkExpression(expr: ls.Expression) {
     this.path.push({ expression: expr });
@@ -145,12 +156,31 @@ export class AnalyzingWalker extends Walker {
     if (expr.declaration && expr.parsedTyping) {
       expr.typing = this.generateTyping(expr.parsedTyping, expr.index);
     }
-    // TODO: If this is part of an Assignment, try to "steal" the typing from there if it's not explicitly defined here
     let typing = expr.typing;
+    // If this is part of an assignment or function declaration, try to "steal" the typing from there if it's not explicitly defined here
+    if (!typing) {
+      const segment = this.findLastSegment(s => s.expression.type === 'Assignment' || s.expression.type === 'Function');
+      if (segment) {
+        let assign: ls.Expression = segment.expression;
+        if (assign.type === 'Assignment') {
+          // If it's an assignment instead of a function, get the actual assigned value (if available)
+          const index = assign.variables.indexOf(expr);
+          assign = assign.expressions[index];
+        }
+        if (assign) typing = expr.typing = assign.typing;
+      }
+    }
+    // Do the rest of our logic
     if (!typing || (typing.typing === ts.ANY && !typing.explicit)) {
-      typing = expr.typing = { typing: ts.ANY, explicit: false };
-      const msg = `Cannot interfere typing for variable ${variable.name}, assuming any`;
-      this.logDiagnosticError(DiagnosticCode.WARNING_IMPLICIT_VARIABLE, expr.index, msg, DiagnosticType.Warning);
+      // If we already registered this variable in the flow, use that one and don't complain
+      const flowTyping = this.flow.getVariableType(expr.name);
+      if (flowTyping) {
+        typing = expr.typing = flowTyping;
+      } else {
+        typing = expr.typing = { typing: ts.ANY, explicit: false };
+        const msg = `Cannot interfere typing for variable ${variable.name}, assuming any`;
+        this.logDiagnosticError(DiagnosticCode.WARNING_IMPLICIT_VARIABLE, expr.index, msg, DiagnosticType.Warning);
+      }
     }
     if (expr.declaration) {
       this.flow.setVariableType(variable.name, typing);
@@ -234,15 +264,16 @@ export class AnalyzingWalker extends Walker {
         this.flow.setVariableType(param.name, { typing: ts.ANY, explicit: true });
       }
     });
-    // Now let's go through the body and such
-    super.walkFunction(expr);
-    this.flow = this.flow.parent!;
-    // TODO: Handle returning (dynamic) tuples
-    func.returnValues = new ts.TypingTuple(ts.unionFromTuples(segm.returns.map(r => r.returnTypes!.tuple)));
+    // Assign early, so walkVariable can access it if needed
     expr.typing = {
       typing: func,
       explicit: true,
     };
+    // Now let's go through the body and such
+    super.walkFunction(expr);
+    this.flow = this.flow.parent!;
+    // TODO: Handle returning (dynamic) tuples?
+    func.returnValues = new ts.TypingTuple(ts.unionFromTuples(segm.returns.map(r => r.returnTypes!.tuple)));
   }
   public walkReturn(expr: ls.Return) {
     super.walkReturn(expr);
@@ -268,8 +299,10 @@ export class AnalyzingWalker extends Walker {
   }
   public walkBinaryOp(expr: ls.BinaryOp) {
     super.walkBinaryOp(expr);
-    const left = expr.left.typing!.typing;
-    const right = expr.right.typing!.typing;
+    // const left = expr.left.typing!.typing;
+    // const right = expr.right.typing!.typing;
+    const left = this.getTyping(expr.left);
+    const right = this.getTyping(expr.right);
     // Gonna have to do a lot of magic and checks here for metafields 'n such
     if (expr.operation === ls.BinaryOperationEnum.AND) {
       if (left === ts.FALSE || left === ts.NIL) {
