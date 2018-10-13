@@ -287,8 +287,8 @@ export class AnalyzingWalker extends Walker {
     const { returnTyping } = func.expression as ls.FunctionExpr;
     if (!returnTyping || !returnTyping.explicit) return;
     if (!returnTyping.typing.canCastFrom(returnTypes)) {
-      const msg = `Cannot cast ${returnTypes} to ${returnTyping.typing}`;
-      this.logDiagnosticError(DiagnosticCode.ERROR_CANNOT_CAST, expr.index, msg);
+      const msg = `Cannot return ${returnTypes} when ${returnTyping.typing} is expected`;
+      this.logDiagnosticError(DiagnosticCode.ERROR_CANNOT_CAST_RETURN, expr.index, msg);
     }
   }
   public walkVararg(expr: ls.Vararg) {
