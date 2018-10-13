@@ -9,7 +9,16 @@ export interface TypingHolder<T extends Typing = Typing> {
 
 /* Typing utility methods */
 
-export const canCastTo = (from: Typing, to: Typing) => to.canCastFrom(from);
+// export const canCastTo = (from: Typing, to: Typing) => to.canCastFrom(from);
+export function canCastTo(from: Typing, to: Typing) {
+  if (from === to) return true;
+  if (from instanceof TypingUnion) {
+    return from.types.every(t => to.canCastFrom(t));
+  } else if (from instanceof TypingIntersection) {
+    return from.types.every(t => to.canCastFrom(t));
+  }
+  return to.canCastFrom(from);
+}
 
 export function canCastTuple(from: Typing[], to: Typing[], toVararg?: TypingVararg | null): boolean {
   from = from.slice(0);
@@ -195,7 +204,7 @@ export class TypingFunction extends Typing {
     const argF = typing.parameters.map(p => p.typing!.typing);
     const argT = this.parameters.map(p => p.typing!.typing);
     if (!canCastTuple(argF, argT, this.vararg)) return false;
-    if (!typing.returnValues.canCastFrom(this.returnValues)) return false;
+    if (!this.returnValues.canCastFrom(typing.returnValues)) return false;
     return true;
   }
   public toString(): string {
