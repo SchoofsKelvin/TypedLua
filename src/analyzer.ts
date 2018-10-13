@@ -156,24 +156,30 @@ export class AnalyzingWalker extends Walker {
     if (expr.declaration && expr.parsedTyping) {
       expr.typing = this.generateTyping(expr.parsedTyping, expr.index);
     }
-    let typing = expr.typing;
+    const flowTyping = this.flow.getVariableType(expr.name);
+    let typing = flowTyping || expr.typing;
+    let ignoreImplicit = false;
     // If this is part of an assignment or function declaration, try to "steal" the typing from there if it's not explicitly defined here
     if (!typing) {
       const segment = this.findLastSegment(s => s.expression.type === 'Assignment' || s.expression.type === 'Function');
       if (segment) {
-        let assign: ls.Expression = segment.expression;
+        let assign: ls.Expression | null = segment.expression;
         if (assign.type === 'Assignment') {
           // If it's an assignment instead of a function, get the actual assigned value (if available)
           const index = assign.variables.indexOf(expr);
           assign = assign.expressions[index];
+        } else {
+          // When it's a function declaration, the function itself will set this variable's type
+          assign = null;
+          ignoreImplicit = true;
         }
         if (assign) typing = expr.typing = assign.typing;
       }
     }
+    if (ignoreImplicit) return;
     // Do the rest of our logic
     if (!typing || (typing.typing === ts.ANY && !typing.explicit)) {
       // If we already registered this variable in the flow, use that one and don't complain
-      const flowTyping = this.flow.getVariableType(expr.name);
       if (flowTyping) {
         typing = expr.typing = flowTyping;
       } else {
@@ -243,7 +249,8 @@ export class AnalyzingWalker extends Walker {
     }
     // Above call should've walked through all return statements
     // which we can use now to generate the function's typing
-    const name = expr.variable && expr.variable.name;
+    const { variable } = expr;
+    const name = variable && variable.name;
     const func = new ts.TypingFunction(name);
     const params = func.parameters = expr.parameters;
     const vararg = params.pop();
@@ -264,11 +271,13 @@ export class AnalyzingWalker extends Walker {
         this.flow.setVariableType(param.name, { typing: ts.ANY, explicit: true });
       }
     });
-    // Assign early, so walkVariable can access it if needed
+    // ~~Assign early, so walkVariable can access it if needed~~
     expr.typing = {
       typing: func,
       explicit: true,
     };
+    // Ignore comment above, we're gonna set the variable's typing if it exists
+    if (variable) variable.typing = expr.typing;
     // Now let's go through the body and such
     super.walkFunction(expr);
     this.flow = this.flow.parent!;
