@@ -90,6 +90,7 @@ export class TypingInterface extends Typing {
     super();
   }
   public canCastFrom(typing: Typing): boolean {
+    if (typing === ANY) return true;
     if (typing instanceof TypingInterface) {
       return Object.keys(this.fields).every((key) => {
         const field = typing.fields[key] || NIL;
@@ -114,6 +115,7 @@ export class TypingClass extends TypingInterface {
     super(name);
   }
   public canCastFrom(typing: Typing): boolean {
+    if (typing === ANY) return true;
     return typing instanceof TypingClass && typing.name === this.name;
   }
   public toString(): string {
@@ -132,6 +134,7 @@ export class TypingConstant extends Typing {
     super();
   }
   public canCastFrom(typing: Typing): boolean {
+    if (typing === ANY) return true;
     return typing instanceof TypingConstant && typing.value === this.value;
   }
   public toString(): string {
@@ -156,6 +159,7 @@ export class TypingArray extends Typing {
     super();
   }
   public canCastFrom(typing: Typing): boolean {
+    if (typing === ANY) return true;
     return typing instanceof TypingArray && this.subtype.canCastFrom(typing.subtype);
   }
   public toString(): string {
@@ -186,6 +190,7 @@ export class TypingFunction extends Typing {
     super();
   }
   public canCastFrom(typing: Typing): boolean {
+    if (typing === ANY) return true;
     if (!(typing instanceof TypingFunction)) return false;
     const argF = typing.parameters.map(p => p.typing!.typing);
     const argT = this.parameters.map(p => p.typing!.typing);
