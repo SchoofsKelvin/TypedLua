@@ -193,8 +193,8 @@ export class AnalyzingWalker extends Walker {
       if (!('typing' in value) || !value.typing) return;
       const curType = v.typing && v.typing.typing;
       if (curType) {
-        if (!value.typing.typing.canCastFrom(curType)) {
-          const msg = `Cannot cast ${curType} to ${value.typing.typing}`;
+        if (!curType.canCastFrom(value.typing.typing)) {
+          const msg = `Cannot cast ${value.typing.typing} to ${curType}`;
           this.logDiagnosticError(DiagnosticCode.ERROR_CANNOT_CAST, value.index, msg);
         }
       }

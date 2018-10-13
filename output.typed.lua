@@ -39,3 +39,4 @@ end--[[test2(abc: any) => (number | string)]]
 
 local a--[['not abc']] = "abc"--[[string]]
 local b--[[string]] = 123--[[number]]
+local c--[[string]] = "idk"--[[string]]

@@ -39,3 +39,4 @@ end
 
 local a: 'not abc' = 'abc';
 local b: string = 123;
+local c: string = 'idk';
