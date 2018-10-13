@@ -26,7 +26,7 @@ local b: number | string & Something;
 local a--[[any]] = function(idk)return idk--[[any]] + 123--[[number]]--[[any]]end--[[(idk: number) => (any)]]
 
 local function test--[[any]](par, ...)
-	print--[[any]](par--[[any]], ...--[[string[]...]])
+	print--[[any]](par--[[string]], ...--[[string[]...]])
 	return"abc"--[[string]], nil--[[null]], ...--[[string[]...]]
 end--[[test(par: string) => (string, null, string[]...)]]
 

@@ -37,7 +37,7 @@ export class FunctionFlow {
     while (flow) {
       const typing = flow.variables[name];
       if (typing) return typing;
-      flow = this.parent;
+      flow = flow.parent;
     }
     return null;
   }

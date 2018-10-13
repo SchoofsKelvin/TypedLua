@@ -211,19 +211,6 @@ export class AnalyzingWalker extends Walker {
     if (expr.parsedReturnTyping) {
       expr.returnTyping = this.generateTyping(expr.parsedReturnTyping, expr.index) as ts.TypingHolder<ts.TypingTuple>;
     }
-    // Register a new flow with all parameter types, otherwise the parameter don't properly "exist" in the body
-    this.flow = new FunctionFlow(this.flow);
-    expr.parameters.forEach((param) => {
-      if (param.typing) {
-        this.flow.setVariableType(param.name, param.typing!);
-      } else {
-        const msg = `Cannot interfere typing for parameter ${param.name}, assuming any`;
-        this.logDiagnosticError(DiagnosticCode.WARNING_IMPLICIT_PARAMETER, expr.index, msg, DiagnosticType.Warning);
-      }
-    });
-    // Now let's go through the body and such
-    super.walkFunction(expr);
-    this.flow = this.flow.parent!;
     // Above call should've walked through all return statements
     // which we can use now to generate the function's typing
     const name = expr.variable && expr.variable.name;
@@ -236,6 +223,20 @@ export class AnalyzingWalker extends Walker {
       params.push(vararg);
     }
     params.forEach(p => p.typing = this.generateTyping(p.parsedTyping, expr.index));
+    // Register a new flow with all parameter types, otherwise the parameter don't properly "exist" in the body
+    this.flow = new FunctionFlow(this.flow);
+    params.forEach((param) => {
+      if (param.typing) {
+        this.flow.setVariableType(param.name, param.typing!);
+      } else {
+        const msg = `Cannot interfere typing for parameter ${param.name}, assuming any`;
+        this.logDiagnosticError(DiagnosticCode.WARNING_IMPLICIT_PARAMETER, expr.index, msg, DiagnosticType.Warning);
+        this.flow.setVariableType(param.name, { typing: ts.ANY, explicit: true });
+      }
+    });
+    // Now let's go through the body and such
+    super.walkFunction(expr);
+    this.flow = this.flow.parent!;
     // TODO: Handle returning (dynamic) tuples
     func.returnValues = new ts.TypingTuple(ts.unionFromTuples(segm.returns.map(r => r.returnTypes!.tuple)));
     expr.typing = {
