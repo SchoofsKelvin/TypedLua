@@ -28,6 +28,24 @@ export enum Keyword {
   or = 'OR',
 }
 
+export enum BinaryOperationEnum {
+  POW = '^',
+  MUL = '*',
+  DIV = '/',
+  MOD = '%',
+  ADD = '+',
+  MIN = '-',
+  CONCAT = '..',
+  LESS_THAN = '<',
+  LESS_OR_EQUAL_THAN = '<=',
+  GREATER_THAN = '>',
+  GREATER_OR_EQUAL_THAN = '>=',
+  EQUALS = '==',
+  NOT_EQUALS = '~=',
+  OR = 'or',
+  AND = 'and',
+}
+
 export type BinaryOperation = '^'
   | '*' | '/' | '%'
   | '+' | '-'

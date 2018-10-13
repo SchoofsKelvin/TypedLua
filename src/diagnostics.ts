@@ -8,9 +8,11 @@ export interface Diagnostic {
 
 export const enum DiagnosticType {
   Error = 'error',
+  Warning = 'warning',
 }
 
 export const enum DiagnosticCode {
   ERROR_CANNOT_CAST = 'ERROR_CANNOT_CAST',
   ERROR_UNKNOWN_TYPE = 'ERROR_UNKNOWN_TYPE',
+  WARNING_UNKNOWN_BINARY_OP = 'WARNING_UNKNOWN_BINARY_OP',
 }

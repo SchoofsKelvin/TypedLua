@@ -56,8 +56,8 @@ export class AnalyzingWalker extends Walker {
   public analyzeMainChunk(chunk: ls.MainChunk) {
     chunk.block.forEach(this.walkExpression, this);
   }
-  public logDiagnosticError(code: DiagnosticCode, index: number, message?: string) {
-    this.diagnostics.push({ code, index, message, type: DiagnosticType.Error });
+  public logDiagnosticError(code: DiagnosticCode, index: number, message?: string, type = DiagnosticType.Error) {
+    this.diagnostics.push({ code, index, message, type });
   }
   public generateTyping(parsed: ls.ParsedTyping | null | undefined, index: number): ts.TypingHolder {
     if (!parsed) return { typing: ts.ANY, explicit: false };
@@ -244,5 +244,42 @@ export class AnalyzingWalker extends Walker {
     const func = this.findLastSegment<FuncPS>(s => s.expression.type === 'Function');
     if (!func) throw new Error('TODO: Handle return statement in main chunk');
     expr.typing = func.expression.varargTyping;
+  }
+  public walkBinaryOp(expr: ls.BinaryOp) {
+    super.walkBinaryOp(expr);
+    const left = expr.left.typing!.typing;
+    const right = expr.right.typing!.typing;
+    // Gonna have to do a lot of magic and checks here for metafields 'n such
+    if (expr.operation === ls.BinaryOperationEnum.AND) {
+      if (left === ts.FALSE || left === ts.NIL) {
+        // Left side can is nil/false, so we know the typing will be the same
+        expr.typing = { typing: left, explicit: false };
+      } else if (ts.FALSE.canCastFrom(left) || ts.NIL.canCastFrom(left)) {
+        // Left side can be nil/false, so the typing can be either side
+        expr.typing = { typing: new ts.TypingUnion([left, right]), explicit: false };
+      }
+      // Otherwise it's guaranteed to be the right side
+      expr.typing = { typing: right, explicit: false };
+    } else if (expr.operation === ls.BinaryOperationEnum.OR) {
+      if (left === ts.FALSE || left === ts.NIL) {
+        // Left side can is nil/false, so we know the typing will be the right side
+        expr.typing = { typing: right, explicit: false };
+      } else if (ts.FALSE.canCastFrom(left) || ts.NIL.canCastFrom(left)) {
+        // Left side can be nil/false, so the typing can be either side
+        expr.typing = { typing: new ts.TypingUnion([left, right]), explicit: false };
+      }
+      // Otherwise it's guaranteed to be the left side
+      expr.typing = { typing: left, explicit: false };
+    } else if (expr.operation === ls.BinaryOperationEnum.CONCAT) {
+      // e.g. for concat, we can assume it's a string, but again...
+      expr.typing = { typing: ts.STRING, explicit: true };
+    } else if (left === ts.NUMBER && right === ts.NUMBER) {
+      // Eh, definitely inaccurate, but good enough for now...
+      expr.typing = { typing: ts.NUMBER, explicit: true };
+    } else {
+      expr.typing = { typing: ts.ANY, explicit: false };
+      const msg = `No idea what binary op ${expr.operation} for ${left} and ${right} will result in, assuming any`;
+      this.logDiagnosticError(DiagnosticCode.WARNING_UNKNOWN_BINARY_OP, expr.index, msg, DiagnosticType.Warning);
+    }
   }
 }
