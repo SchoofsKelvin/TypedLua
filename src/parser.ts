@@ -165,10 +165,10 @@ export class Parser {
     return null;
   }
   /* SYNTAX PARSING */
-  protected block(): [ls.Block, ls.Scope] {
+  protected block(locals: string[] = []): [ls.Block, ls.Scope] {
     const scope: ls.Scope = this.scope = {
+      locals,
       parent: this.scope,
-      locals: [],
       upvalues: [],
     };
     const prev = this.currrentBlock;
@@ -196,10 +196,10 @@ export class Parser {
     this.scope = scope.parent;
     return [stats, scope];
   }
-  protected chunk(): ls.Chunk {
+  protected chunk(locals?: string[]): ls.Chunk {
     const prev = this.currentChunk;
     const chunk = this.currentChunk = {} as ls.Chunk;
-    const [block, scope] = this.block();
+    const [block, scope] = this.block(locals);
     chunk.block = block;
     chunk.scope = scope;
     this.currentChunk = prev;
@@ -214,7 +214,7 @@ export class Parser {
       index, name, scope,
       type: 'Variable',
       scopePosition: scope.locals.length,
-      declaration: false,
+      declaration: true,
     };
     this.lastExpression = expr;
     while (this.string('.')) {
@@ -327,7 +327,7 @@ export class Parser {
         assert(this.keyword('in'), 'Expected `in`');
         const expressions = assert(this.expList(), 'Expected an expression');
         assert(this.keyword('do'), 'Expected `do`');
-        const block = this.block()[0];
+        const block = this.block(names)[0];
         const endIndex2 = this.trim();
         assert(this.keyword('end'), `Expected \`end\` to close \`for\` (line ${line})`);
         return this.lastExpression = {
@@ -746,9 +746,10 @@ export class Parser {
       return null;
     }
     const [parameters, parsedVarargTyping] = this.splitVararg(params);
+    const paramNames = parameters.map(p => p.name);
     if (this.string('{')) {
       const line = this.line();
-      const chunk = this.chunk();
+      const chunk = this.chunk(paramNames);
       const endIndex = this.trim();
       assert(this.string('}'), `Expected \`}\` for lambda (line ${line})`);
       return {
@@ -759,7 +760,7 @@ export class Parser {
       };
     } else if (this.keyword('do')) {
       const line = this.line();
-      const chunk = this.chunk();
+      const chunk = this.chunk(paramNames);
       const endIndex = this.trim();
       assert(this.keyword('end'), `Expected \`end\` for lambda (line ${line})`);
       return {
@@ -771,7 +772,13 @@ export class Parser {
     }
     index = this.index;
     const brackets = this.string('(');
+    const scope: ls.Scope = this.scope = {
+      parent: this.scope,
+      locals: paramNames,
+      upvalues: [],
+    };
     let block = assert(this.expList() || (brackets ? [] : null), 'Expected an expression');
+    this.scope = scope.parent;
     assert(!brackets || this.string(')'), 'Expected `)`');
     block = block.length ? [{
       index,
@@ -784,10 +791,7 @@ export class Parser {
       endIndex: index,
       type: 'Function',
       local: false,
-      chunk: {
-        block,
-        scope: this.scope!,
-      },
+      chunk: { block, scope },
     };
   }
   protected splitVararg(params: ls.FunctionParameter[]): [ls.FunctionParameter[], ls.ParsedTypingVararg | null] {
@@ -814,13 +818,13 @@ export class Parser {
     const index = this.index;
     assert(this.string('('), 'Expected `(`');
     const params = this.parList();
+    const [parameters, parsedVarargTyping] = this.splitVararg(params);
     assert(this.string(')'), 'Expected `)`');
     const parsedReturnTyping = this.string(':') && this.typeTuple() || undefined;
     const line = this.line();
-    const chunk = this.chunk();
+    const chunk = this.chunk(parameters.map(p => p.name));
     const endIndex = this.trim();
     assert(this.keyword('end'), `Expected \`end\` for function (line ${line})`);
-    const [parameters, parsedVarargTyping] = this.splitVararg(params);
     return {
       index, chunk, parameters, endIndex, parsedReturnTyping,
       parsedVarargTyping: parsedVarargTyping || undefined,
