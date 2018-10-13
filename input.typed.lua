@@ -23,6 +23,8 @@ local a: 'abc' = 'def';
 local b: number | string & Something;
 --]==]
 
+local a = (idk: number) => (idk + 123);
+
 function test(par: string, ...: string[]): (number, 123)
 	print(par, ...)
 	return 'abc', nil, ...

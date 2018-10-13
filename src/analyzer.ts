@@ -6,21 +6,23 @@ import * as ts from './typingStructs';
 import { Walker } from './walker';
 
 interface ScopeVariable {
-  scope: ls.Scope;
+  scope?: ls.Scope;
   index: number;
   name: string;
+  local: boolean;
 }
 class ScopeVariables {
   protected vars: ScopeVariable[] = [];
-  public getVariable(scope: ls.Scope, index: number, name: string) {
+  public getVariable(scope: ls.Scope, index: number, name: string): ScopeVariable {
     let variable = this.vars.find(v => v.scope === scope && v.index === index);
     if (variable) return variable;
-    variable = { scope, index, name };
+    variable = { scope, index, name, local: true };
     this.vars.push(variable);
     return variable;
   }
-  public getVariableFromExpression(expr: ls.Variable) {
+  public getVariableFromExpression(expr: ls.Variable): ScopeVariable {
     const index = expr.scope.locals.slice(0, expr.scopePosition).lastIndexOf(expr.name);
+    if (index === -1) return { index, name: expr.name, local: false };
     return this.getVariable(expr.scope, index, expr.name);
   }
   public getIndex(variable: ScopeVariable) {
@@ -138,14 +140,21 @@ export class AnalyzingWalker extends Walker {
     }
   }
   public walkVariable(expr: ls.Variable) {
+    super.walkVariable(expr);
     const variable = this.locals.getVariableFromExpression(expr);
     if (expr.declaration && expr.parsedTyping) {
       expr.typing = this.generateTyping(expr.parsedTyping, expr.index);
     }
-    if (expr.declaration && expr.typing) {
-      this.flow.setVariableType(variable.name, expr.typing);
+    // TODO: If this is part of an Assignment, try to "steal" the typing from there if it's not explicitly defined here
+    let typing = expr.typing;
+    if (!typing || (typing.typing === ts.ANY && !typing.explicit)) {
+      typing = expr.typing = { typing: ts.ANY, explicit: false };
+      const msg = `Cannot interfere typing for variable ${variable.name}, assuming any`;
+      this.logDiagnosticError(DiagnosticCode.WARNING_IMPLICIT_VARIABLE, expr.index, msg, DiagnosticType.Warning);
     }
-    super.walkVariable(expr);
+    if (expr.declaration) {
+      this.flow.setVariableType(variable.name, typing);
+    }
   }
   public walkFunctionCall(expr: ls.FunctionCall) {
     this.flow = new FunctionFlow(this.flow);
@@ -202,7 +211,19 @@ export class AnalyzingWalker extends Walker {
     if (expr.parsedReturnTyping) {
       expr.returnTyping = this.generateTyping(expr.parsedReturnTyping, expr.index) as ts.TypingHolder<ts.TypingTuple>;
     }
+    // Register a new flow with all parameter types, otherwise the parameter don't properly "exist" in the body
+    this.flow = new FunctionFlow(this.flow);
+    expr.parameters.forEach((param) => {
+      if (param.typing) {
+        this.flow.setVariableType(param.name, param.typing!);
+      } else {
+        const msg = `Cannot interfere typing for parameter ${param.name}, assuming any`;
+        this.logDiagnosticError(DiagnosticCode.WARNING_IMPLICIT_PARAMETER, expr.index, msg, DiagnosticType.Warning);
+      }
+    });
+    // Now let's go through the body and such
     super.walkFunction(expr);
+    this.flow = this.flow.parent!;
     // Above call should've walked through all return statements
     // which we can use now to generate the function's typing
     const name = expr.variable && expr.variable.name;
@@ -215,7 +236,6 @@ export class AnalyzingWalker extends Walker {
       params.push(vararg);
     }
     params.forEach(p => p.typing = this.generateTyping(p.parsedTyping, expr.index));
-    console.log(func, segm.returns);
     // TODO: Handle returning (dynamic) tuples
     func.returnValues = new ts.TypingTuple(ts.unionFromTuples(segm.returns.map(r => r.returnTypes!.tuple)));
     expr.typing = {

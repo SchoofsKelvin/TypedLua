@@ -1,5 +1,5 @@
 
-local ABC = "FIRST"--[[string]] or "SECOND"--[[string]] and "THIRD"--[[string]]
+local ABC--[[any]] = "FIRST"--[[string]] or "SECOND"--[[string]]--[[string]] and "THIRD"--[[string]]
 
 --[[
 local func1: () => ()													= () => {}
@@ -21,15 +21,17 @@ local funcWrongType: () => number = () => true;
 local a: 'abc' = 'def';
 
 local b: number | string & Something;
---]]
+--]]--[[string]]
 
-function test(par, ...)
-	print(par, ...--[[string[]...]])
+local a--[[any]] = function(idk)return idk--[[any]] + 123--[[number]]--[[any]]end--[[(idk: number) => (any)]]
+
+local function test--[[any]](par, ...)
+	print--[[any]](par--[[any]], ...--[[string[]...]])
 	return"abc"--[[string]], nil--[[null]], ...--[[string[]...]]
 end--[[test(par: string) => (string, null, string[]...)]]
 
-function test2(abc)
-	if abc then
+local function test2--[[any]](abc)
+	if abc--[[any]]then
 		return 123--[[number]]
 	end
 	return"abc"--[[string]]
