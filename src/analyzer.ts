@@ -132,39 +132,34 @@ export class AnalyzingWalker extends Walker {
     }
     const flowTyping = this.flow.getVariableType(variable);
     let typing = flowTyping || expr.typing;
-    let ignoreImplicit = false;
     // If this is part of an assignment or function declaration, try to "steal" the typing from there if it's not explicitly defined here
-    if (!typing) {
-      const segment = this.findLastSegment(s => s.expression.type === 'Assignment' || s.expression.type === 'Function');
-      if (segment) {
-        let assign: ls.Expression | null = segment.expression;
-        if (assign.type === 'Assignment') {
-          // If it's an assignment instead of a function, get the actual assigned value (if available)
-          const index = assign.variables.indexOf(expr);
-          assign = assign.expressions[index];
-        } else {
-          // When it's a function declaration, the function itself will set this variable's type
-          assign = null;
-          ignoreImplicit = true;
-        }
-        if (assign) typing = expr.typing = assign.typing;
-      }
-    }
-    if (ignoreImplicit) return;
-    // Do the rest of our logic
-    if (!typing || (typing.typing === ts.ANY && !typing.explicit)) {
-      // If we already registered this variable in the flow, use that one and don't complain
-      if (flowTyping) {
-        typing = expr.typing = flowTyping;
+    const segment = this.findLastSegment(s => s.expression.type === 'Assignment' || s.expression.type === 'Function');
+    if (segment) {
+      let assign: ls.Expression | null = segment.expression;
+      if (assign.type === 'Assignment') {
+        // If it's an assignment instead of a function, get the actual assigned value (if available)
+        const index = assign.variables.indexOf(expr);
+        assign = assign.expressions[index];
       } else {
-        typing = expr.typing = { typing: ts.ANY, explicit: false };
-        const msg = `Cannot interfere typing for variable ${variable.name}, assuming any`;
-        this.logDiagnosticError(DiagnosticCode.WARNING_IMPLICIT_VARIABLE, expr.index, msg, DiagnosticType.Warning);
+        // When it's a function declaration, the function itself will set this variable's type
+        assign = null;
       }
+      if (assign) typing = assign.typing;
     }
-    if (expr.declaration) {
-      this.flow.setVariableType(variable, typing);
+    typing = typing || { typing: ts.ANY, explicit: false };
+    if (typing.typing === ts.ANY && !typing.explicit) {
+      typing = expr.typing = { typing: ts.ANY, explicit: false };
+      const msg = `Cannot interfere typing for variable ${variable.name}, assuming any`;
+      this.logDiagnosticError(DiagnosticCode.WARNING_IMPLICIT_VARIABLE, expr.index, msg, DiagnosticType.Warning);
     }
+    if (expr.typing && !expr.typing.typing.canCastFrom(typing.typing)) {
+      // const msg = `Cannot cast ${typing.typing} to ${expr.typing.typing}`;
+      // this.logDiagnosticError(DiagnosticCode.ERROR_CANNOT_CAST, expr.index, msg);
+      // walkAssignment should already emit an error for this, so yeah...
+    } else if (!expr.typing || !expr.typing.explicit) {
+      expr.typing = typing;
+    }
+    this.flow.setVariableType(variable, typing);
   }
   public walkFunctionCall(expr: ls.FunctionCall) {
     this.flow = new FunctionFlow(this.flow);

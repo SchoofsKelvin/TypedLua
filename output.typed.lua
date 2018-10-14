@@ -23,10 +23,10 @@ local a: 'abc' = 'def';
 local b: number | string & Something;
 --]]--[[string]]
 
-local a--[[(idk: number) => (number)]] = function(idk)return idk + 123--[[number]]--[[number]]end--[[(idk: number) => (number)]]
+local a--[[(idk: number) => (number)]] = function(idk)return idk--[[number]] + 123--[[number]]--[[number]]end--[[(idk: number) => (number)]]
 
 local function test--[[test(par: string) => (string, null, string[]...)]](par, ...)
-	print(par, ...--[[string[]...]])
+	print--[[any]](par--[[string]], ...--[[string[]...]])
 	return"abc"--[[string]], nil--[[null]], ...--[[string[]...]]
 end--[[test(par: string) => (string, null, string[]...)]]
 

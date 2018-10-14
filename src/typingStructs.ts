@@ -192,7 +192,7 @@ export class TypingVararg extends Typing {
 }
 
 export class TypingFunction extends Typing {
-  public parameters: FunctionParameter[] = [];
+  public parameters: FunctionParameterName[] = [];
   public vararg?: TypingVararg;
   public returnValues: TypingTuple = new TypingTuple();
   constructor(public name?: string) {
