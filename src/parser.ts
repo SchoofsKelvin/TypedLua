@@ -94,12 +94,15 @@ export class Parser {
       const [a, b] = assert(this.find(`]${eq}]`, true), `Unfinished long comment starting at line ${start}`);
       this.index = b + 1;
       if (this.lastExpression) {
-        this.lastExpression = this.lastExpression.comment = {
-          type: 'Comment',
-          index: mat.index,
-          long: true,
-          text: this.source.substring(mat.index + mat[0].length, a),
-        };
+        if (this.lastExpression.type !== 'Comment' || this.lastExpression.index !== mat.index) {
+          // ^ Some code reverting (this.index=oldIndex) could result in a comment being parsed twice
+          this.lastExpression = this.lastExpression.comment = {
+            type: 'Comment',
+            index: mat.index,
+            long: true,
+            text: this.source.substring(mat.index + mat[0].length, a),
+          };
+        }
       }
       return true;
     }
@@ -546,6 +549,7 @@ export class Parser {
       return { index, type: 'Constant', value: v };
     }
     let value = stringFromMatch(this.match(/\d+/, true));
+    if (!value) return null;
     if (this.string('.', true)) {
       const n = assert(this.match(/\d+/, true), 'Malformed number');
       value = `${(value ? value[0] : '')}.${n}`;
@@ -670,6 +674,10 @@ export class Parser {
     return null;
   }
   protected typedNameList(vararg = false): [string, ls.ParsedTyping | null][] | null {
+    if (vararg && this.string('...')) {
+      const typing = this.string(':') ? assert(this.typing(), 'Expected a typing') : null;
+      return [['...', typing && { type: 'VARARG', subtype: typing }]];
+    }
     let name = this.name();
     if (!name) return null;
     let typing = this.string(':') ? assert(this.typing(), 'Expected a typing') : null;
