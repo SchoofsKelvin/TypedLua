@@ -85,6 +85,11 @@ export function collapseTyping(typing: Typing): Typing {
   return typing;
 }
 
+/** Helper function (user-defined type guard) for .filter */
+function isTyping(t: any): t is Typing {
+  return t instanceof Typing;
+}
+
 /* Typing data structures */
 
 export abstract class Typing {
@@ -116,9 +121,6 @@ export class TypingTuple extends Typing {
   }
 }
 
-function isTyping(t: any): t is Typing {
-  return t instanceof Typing;
-}
 export class TypingUnion extends Typing {
   constructor(public types: Typing[] = []) {
     super();
@@ -140,7 +142,7 @@ export class TypingIntersection extends Typing {
     super();
   }
   public canCastFrom(typing: Typing): boolean {
-    return this.types.every(canCastTo.bind(typing), typing);
+    return this.types.every(canCastTo.bind(null, typing), typing);
   }
   public toString(): string {
     return this.types.join(' & ');
@@ -222,6 +224,7 @@ export class TypingConstant extends Typing {
     return typing instanceof TypingConstant && typing.value === this.value;
   }
   public toString(): string {
+    if (this.value === null) return 'nil';
     return typeof this.value === 'string' ? `'${this.value}'` : `${this.value}`;
   }
   // TODO: Add fields for string library (getField)

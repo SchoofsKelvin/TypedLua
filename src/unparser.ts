@@ -9,6 +9,8 @@ function declaresLocal(expr: ls.Expression | null | undefined) {
 
 function longStringThing(str: string, amount: number) {
   if (str.includes(`[${'='.repeat(amount)}[`)) return true;
+  if (str.includes(`]${'='.repeat(amount)}]`)) return true;
+  if (str.endsWith(']') && amount == 0) return true;
   return str.includes(`]${'='.repeat(amount)}]`);
 }
 

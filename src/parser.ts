@@ -873,6 +873,7 @@ export class Parser {
   protected typeTuple(allowBrackets = true): ls.ParsedTypingTuple | null {
     const index = this.index;
     const bracket = allowBrackets && this.string('(');
+    if (bracket && this.string(')')) return { type: 'TUPLE', types: [] };
     const types = this.typeList();
     if (!types) {
       this.index = index;

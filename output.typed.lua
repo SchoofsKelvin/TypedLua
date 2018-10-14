@@ -27,15 +27,15 @@ local a--[[(idk: number) => (number)]] = function(idk)return idk--[[number]] + 1
 a--[[(idk: number) => (number)]](123--[[number]])
 a--[[(idk: number) => (number)]]("hi"--[[string]])
 
-function test--[[test(par: string) => (string, null, string[]...)]](par, ...)
+function test--[[test(par: string) => (string, nil, string[]...)]](par, ...)
 	print--[[any]](par--[[string]], ...--[[string[]...]])
-	return"abc"--[[string]], nil--[[null]], ...--[[string[]...]]
-end--[[test(par: string) => (string, null, string[]...)]]
+	return"abc"--[[string]], nil--[[nil]], ...--[[string[]...]]
+end--[[test(par: string) => (string, nil, string[]...)]]
 
-test--[[test(par: string) => (string, null, string[]...)]]("abc"--[[string]])
-test--[[test(par: string) => (string, null, string[]...)]]("abc"--[[string]], "def"--[[string]], "ghi"--[[string]])
-test--[[test(par: string) => (string, null, string[]...)]](123--[[number]])
-test--[[test(par: string) => (string, null, string[]...)]]("abc"--[[string]], "def"--[[string]], 123--[[number]])
+test--[[test(par: string) => (string, nil, string[]...)]]("abc"--[[string]])
+test--[[test(par: string) => (string, nil, string[]...)]]("abc"--[[string]], "def"--[[string]], "ghi"--[[string]])
+test--[[test(par: string) => (string, nil, string[]...)]](123--[[number]])
+test--[[test(par: string) => (string, nil, string[]...)]]("abc"--[[string]], "def"--[[string]], 123--[[number]])
 
 function test2--[[test2(abc: any) => (number | string)]](abc)
 	if abc--[[any]]then
