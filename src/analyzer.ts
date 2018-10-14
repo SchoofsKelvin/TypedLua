@@ -10,6 +10,12 @@ export interface PathSegment {
   [key: string]: any;
 }
 
+function nth(value: number) {
+  const s = ["th", "st", "nd", "rd"];
+  const v = value % 100;
+  return `${value}${(s[(v - 20) % 10] || s[v] || s[0])}`;
+}
+
 export class AnalyzingWalker extends Walker {
   protected flow = new FunctionFlow();
   protected diagnostics: Diagnostic[] = [];
@@ -106,6 +112,14 @@ export class AnalyzingWalker extends Walker {
       case 'Variable':
         const vt = this.flow.getVariableType(expr.variable);
         return vt ? vt.typing : any;
+      // Field and Method are quite similar, really
+      case 'Field':
+        let indexType = expr.expression && this.getTyping(expr.expression);
+      case 'Method':
+        const baseType = this.getTyping(expr.base, false);
+        if (!baseType) return null;
+        indexType = indexType || new ts.TypingConstant(expr.name);
+        return baseType.getField(indexType);
     }
     return expr.typing ? expr.typing.typing : any;
   }
@@ -161,14 +175,84 @@ export class AnalyzingWalker extends Walker {
     }
     this.flow.setVariableType(variable, typing);
   }
+  public checkFunctionCall(expr: ls.FunctionCall | ls.FunctionSelfCall) {
+    let args = expr.arguments;
+    let funcType: ts.Typing | null = null;
+    if (expr.type === 'FunctionSelfCall') {
+      args = [expr.base, ...args];
+      const baseType = this.getTyping(expr.base, false);
+      if (baseType) {
+        const indexType = new ts.TypingConstant(expr.name);
+        funcType = baseType.getField(indexType);
+      }
+    } else {
+      funcType = this.getTyping(expr.target, false);
+    }
+    funcType = funcType && ts.collapseTyping(funcType);
+    if (!funcType || funcType === ts.ANY) {
+      const msg = `Cannot interfere typing for function call, assuming any`;
+      return this.logDiagnosticError(DiagnosticCode.WARNING_IMPLICIT_CALL, expr.index, msg, DiagnosticType.Warning);
+    } else if (funcType instanceof ts.TypingFunction) {
+      // First calculate some stuff with the passed argument expressions
+      const argTypes = args.map(a => this.getTyping(a));
+      const argCollapsed = ts.collapseTuples(argTypes);
+      const argLast = argCollapsed[argCollapsed.length - 1];
+      const argVararg = argLast && argLast instanceof ts.TypingVararg ? argLast.subtype : null;
+      if (argVararg) argCollapsed.pop();
+      // At this point, the following calls resulted in the following (typing) values:
+      // f(1,2,3) -> argCollapsed = [1,2,3] and argVararg = null
+      // assuming g() returns (string)
+      // f(1,2,g()) -> argCollapsed = [1,2,string] and argVararg = null
+      // assuming h() returns a vararg of numbers
+      // f(1,2,h(),h()) -> argCollapsed = [1,2,number] and argVarag = number
+      const parameters = funcType.parameters;
+      const vararg = funcType.vararg;
+      // If we gave too much arguments explicitly, complain
+      if (!vararg && (args.length - (argVararg ? 1 : 0)) > parameters.length) {
+        const msg = `Expected at most ${parameters.length} argument${parameters.length === 1 ? '' : 's'}, but got ${args.length}`;
+        return this.logDiagnosticError(DiagnosticCode.ERROR_WRONG_PARAMETERS, expr.index, msg, DiagnosticType.Error);
+      }
+      // Now we'll check if we have all the required arguments and if they're the right type
+      for (let i = 0; i < parameters.length; i += 1) {
+        const arg = argCollapsed[i] || argVararg;
+        if (!arg) {
+          const msg = `Expected ${vararg ? 'at least' : ''} ${parameters.length} argument${parameters.length === 1 ? '' : 's'}, but got ${args.length}`;
+          return this.logDiagnosticError(DiagnosticCode.ERROR_WRONG_PARAMETERS, expr.index, msg, DiagnosticType.Error);
+        }
+        const param = parameters[i];
+        if (!param.typing) continue;
+        const paramType = param.typing.typing;
+        if (paramType.canCastFrom(arg)) continue;
+        const msg = `Cannot cast the ${nth(i + 1)} parameter '${param.name}' of type ${arg} to ${paramType}`;
+        return this.logDiagnosticError(DiagnosticCode.ERROR_CANNOT_CAST, expr.index, msg, DiagnosticType.Error);
+      }
+      if (vararg) {
+        for (let i = parameters.length; i < argCollapsed.length; i += 1) {
+          const arg = argCollapsed[i];
+          if (vararg.canCastFrom(arg)) continue;
+          const msg = `Cannot cast the ${nth(i + 1)} parameter of type ${arg} to ${vararg} for the vararg parameter`;
+          return this.logDiagnosticError(DiagnosticCode.ERROR_CANNOT_CAST, expr.index, msg, DiagnosticType.Error);
+        }
+        if (argVararg && !vararg.canCastFrom(argVararg)) {
+          const msg = `Cannot cast the vararg parameter of type ${argVararg} to ${vararg} for the vararg parameter`;
+          return this.logDiagnosticError(DiagnosticCode.ERROR_CANNOT_CAST, expr.index, msg, DiagnosticType.Error);
+        }
+      }
+    } else {
+      const msg = `A value of type ${funcType} cannot be called`;
+      return this.logDiagnosticError(DiagnosticCode.ERROR_CANNOT_CALL, expr.index, msg, DiagnosticType.Error);
+    }
+  }
   public walkFunctionCall(expr: ls.FunctionCall) {
     this.flow = new FunctionFlow(this.flow);
     super.walkFunctionCall(expr);
+    this.checkFunctionCall(expr);
     this.flow = this.flow.parent!;
   }
   public walkFunctionSelfCall(expr: ls.FunctionSelfCall) {
     this.flow = new FunctionFlow(this.flow);
     super.walkFunctionSelfCall(expr);
+    this.checkFunctionCall(expr);
     this.flow = this.flow.parent!;
   }
   public walkConstant(expr: ls.Constant) {
