@@ -37,6 +37,6 @@ local function test2--[[test2(abc: any) => (number | string)]](abc)
 	return"abc"--[[string]]
 end--[[test2(abc: any) => (number | string)]]
 
-local a--[['not abc']] = "abc"--[[string]]
-local b--[[string]] = 123--[[number]]
+local a = "abc"--[[string]]
+local b--[[number]] = 123--[[number]]
 local c--[[string]] = "idk"--[[string]]

@@ -48,6 +48,7 @@ export class Parser {
     const start: ls.Comment = this.lastExpression = {
       type: 'Comment', long: false, index: 0, text: '',
     };
+    this.scope = new ls.Scope();
     const ch = this.chunk();
     assert(this.index === this.source.length, 'Unexpected symbol');
     return {
@@ -166,11 +167,7 @@ export class Parser {
   }
   /* SYNTAX PARSING */
   protected block(locals: string[] = []): [ls.Block, ls.Scope] {
-    const scope: ls.Scope = this.scope = {
-      locals,
-      parent: this.scope,
-      upvalues: [],
-    };
+    const scope = this.scope = this.scope!.createSubScope();
     const prev = this.currrentBlock;
     const stats: ls.Expression[] = this.currrentBlock = [];
     let stat = this.stat();
@@ -210,10 +207,10 @@ export class Parser {
     let index = this.trim();
     let name = assert(this.name(), 'Expected a name');
     const scope = this.scope as ls.Scope;
+    const variable = scope.calculateVariable(name);
     let expr: ls.Variable | ls.Field | ls.Method = {
-      index, name, scope,
+      index, variable,
       type: 'Variable',
-      scopePosition: scope.locals.length,
       declaration: true,
     };
     this.lastExpression = expr;
@@ -341,7 +338,7 @@ export class Parser {
         const func = this.funcBody();
         func.variable = name;
         if (name.type === 'Method') {
-          func.chunk.scope.locals.unshift('self');
+          func.chunk.scope.insertVariable('self', 0);
         }
         func.index = index;
         return this.lastExpression = func;
@@ -349,15 +346,13 @@ export class Parser {
       case ls.Keyword.local: {
         if (this.keyword('function')) {
           const name = assert(this.name(), 'Expected a name');
-          const locals = (this.scope as ls.Scope).locals;
-          locals.push(name);
+          const scope = this.scope!;
+          const variable = scope.createVariable(name)
           const func = this.funcBody();
           func.index = index;
           func.variable = {
-            index, name,
+            index, variable,
             type: 'Variable',
-            scope: this.scope as ls.Scope,
-            scopePosition: locals.length,
             declaration: true,
           };
           return this.lastExpression = func;
@@ -365,15 +360,10 @@ export class Parser {
         const vars = assert(this.typedNameList(), 'Expected a name');
         const expressions = this.string('=') ?
           assert(this.expList(), 'Expected an expression') : [];
-        const scope = this.scope as ls.Scope;
-        const locStart = scope.locals.length;
-        scope.locals = [...scope.locals, ...vars.map(v => v[0])];
-        const variables = vars.map<ls.Variable>((v, k) => ({
-          index, scope,
+        const scope = this.scope!;
+        const variables = scope.createVariables(vars.map(v => v[0])).map<ls.Variable>(variable => ({
+          index, variable,
           type: 'Variable',
-          name: v[0],
-          parsedTyping: v[1] || undefined,
-          scopePosition: locStart + k,
           declaration: true,
         }));
         return this.lastExpression = {
@@ -520,11 +510,11 @@ export class Parser {
     if (exp) return this.postExpression(exp);
     const name = this.name();
     if (name) {
-      const scope = this.scope as ls.Scope;
+      const scope = this.scope!;
+      const variable = scope.calculateVariable(name);
       return this.postExpression({
-        index, name, scope,
+        index, variable,
         type: 'Variable',
-        scopePosition: scope.locals.length,
         declaration: false,
       });
     }
@@ -772,11 +762,8 @@ export class Parser {
     }
     index = this.index;
     const brackets = this.string('(');
-    const scope: ls.Scope = this.scope = {
-      parent: this.scope,
-      locals: paramNames,
-      upvalues: [],
-    };
+    const scope = this.scope = this.scope!.createSubScope();
+    scope.createVariables(paramNames);
     let block = assert(this.expList() || (brackets ? [] : null), 'Expected an expression');
     this.scope = scope.parent;
     assert(!brackets || this.string(')'), 'Expected `)`');

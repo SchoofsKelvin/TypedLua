@@ -5,31 +5,6 @@ import * as ls from './parserStructs';
 import * as ts from './typingStructs';
 import { Walker } from './walker';
 
-interface ScopeVariable {
-  scope?: ls.Scope;
-  index: number;
-  name: string;
-  local: boolean;
-}
-class ScopeVariables {
-  protected vars: ScopeVariable[] = [];
-  public getVariable(scope: ls.Scope, index: number, name: string): ScopeVariable {
-    let variable = this.vars.find(v => v.scope === scope && v.index === index);
-    if (variable) return variable;
-    variable = { scope, index, name, local: true };
-    this.vars.push(variable);
-    return variable;
-  }
-  public getVariableFromExpression(expr: ls.Variable): ScopeVariable {
-    const index = expr.scope.locals.slice(0, expr.scopePosition).lastIndexOf(expr.name);
-    if (index === -1) return { index, name: expr.name, local: false };
-    return this.getVariable(expr.scope, index, expr.name);
-  }
-  public getIndex(variable: ScopeVariable) {
-    return this.vars.indexOf(variable);
-  }
-}
-
 export interface PathSegment {
   expression: ls.Expression;
   [key: string]: any;
@@ -37,7 +12,6 @@ export interface PathSegment {
 
 export class AnalyzingWalker extends Walker {
   protected flow = new FunctionFlow();
-  protected locals = new ScopeVariables();
   protected diagnostics: Diagnostic[] = [];
   protected path: PathSegment[] = [];
   /* Getters / Setters */
@@ -130,7 +104,7 @@ export class AnalyzingWalker extends Walker {
     const any = anyIfMissing ? ts.ANY : null;
     switch (expr.type) {
       case 'Variable':
-        const vt = this.flow.getVariableType(expr.name);
+        const vt = this.flow.getVariableType(expr.variable.name);
         return vt ? vt.typing : any;
     }
     return expr.typing ? expr.typing.typing : any;
@@ -152,11 +126,11 @@ export class AnalyzingWalker extends Walker {
   }
   public walkVariable(expr: ls.Variable) {
     super.walkVariable(expr);
-    const variable = this.locals.getVariableFromExpression(expr);
+    const { variable } = expr;
     if (expr.declaration && expr.parsedTyping) {
       expr.typing = this.generateTyping(expr.parsedTyping, expr.index);
     }
-    const flowTyping = this.flow.getVariableType(expr.name);
+    const flowTyping = this.flow.getVariableType(variable.name);
     let typing = flowTyping || expr.typing;
     let ignoreImplicit = false;
     // If this is part of an assignment or function declaration, try to "steal" the typing from there if it's not explicitly defined here
@@ -234,7 +208,7 @@ export class AnalyzingWalker extends Walker {
           this.logDiagnosticError(DiagnosticCode.ERROR_CANNOT_CAST, value.index, msg);
         }
       }
-      this.flow.setVariableType(v.name, value.typing);
+      this.flow.setVariableType(v.variable.name, value.typing);
     });
   }
   public walkFunction(expr: ls.FunctionExpr) {
@@ -250,7 +224,7 @@ export class AnalyzingWalker extends Walker {
     // Above call should've walked through all return statements
     // which we can use now to generate the function's typing
     const { variable } = expr;
-    const name = variable && variable.name;
+    const name = variable && (variable.type === 'Variable' ? variable.variable.name : variable.name);
     const func = new ts.TypingFunction(name);
     const params = func.parameters = expr.parameters;
     const vararg = params.pop();

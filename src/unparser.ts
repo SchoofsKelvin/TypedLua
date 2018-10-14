@@ -117,7 +117,7 @@ export class Unparser {
         break;
       }
       case 'Variable':
-        return this.safeAppend(expr.name);
+        return this.safeAppend(expr.variable.name);
       case 'Field':
       case 'Method':
         this.unparseExpression(expr.base);

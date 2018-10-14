@@ -70,10 +70,52 @@ export type UnaryOperation = '-' | '#' | 'not';
 
 /* General data structures */
 
-export interface Scope {
-  parent?: Scope;
-  locals: string[];
-  upvalues: string[];
+export class Scope {
+  public parent?: Scope;
+  public variables: ScopeVariable[] = [];
+  public getVariable(name: string): ScopeVariable | null {
+    return this.variables.find(v => v.name === name) || null;
+  }
+  public calculateVariable(name: string): ScopeVariable {
+    return this.variables.find(v => v.name === name)
+    || this.parent && this.parent.getVariable(name)
+    || { name, local: false, scope: this, scopePosition: -1 };
+  }
+  public insertVariable(name: string, scopePosition: number) {
+    const variable: ScopeVariable = {
+      name, scopePosition,
+      local: true,
+      scope: this,
+    };
+    this.variables.splice(scopePosition, 0, variable);
+    this.variables.forEach((v, i) => v.scopePosition = i);
+    return variable;
+  }
+  public createVariable(name: string) {
+    const variable: ScopeVariable = {
+      name,
+      local: true,
+      scope: this,
+      scopePosition: this.variables.length,
+    };
+    this.variables.push(variable);
+    return variable;
+  }
+  public createVariables(names: string[]) {
+    return names.map(this.createVariable, this);
+  }
+  public createSubScope() {
+    const scope = new Scope();
+    scope.parent = this;
+    return scope;
+  }
+}
+
+export interface ScopeVariable {
+  scope: Scope;
+  scopePosition: number;
+  name: string;
+  local: boolean;
 }
 
 export interface Chunk {
@@ -132,10 +174,8 @@ export interface Return extends ExpressionBase {
 }
 export interface Variable extends ExpressionBase {
   type: 'Variable';
-  scope: Scope;
-  scopePosition: number;
-  name: string;
   declaration: boolean;
+  variable: ScopeVariable;
 }
 export interface Field extends ExpressionBase {
   type: 'Field';
