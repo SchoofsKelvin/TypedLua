@@ -45,11 +45,54 @@ export function unionFromTuples(tuples: Typing[][]): TypingUnion[] {
   return res.map(t => new TypingUnion(t));
 }
 
+/**
+ * Collapses the array of Typings:
+ * - TypingVararg at the end is kept
+ * - TypingVararg in the middle is changed into its subtype
+ * - TypingTuple at the end is "expanded"
+ * - TypingTuple in the middle is changed into its first typing (or nil typing)
+ * - Repeat this progress until the last element isn't a TypingTuple anymore
+ * 
+ * No elements in the resulting array are TypingTuple, and only the last element can be a TypingVararg
+ */
+export function collapseTuples(typings: Typing[]): Typing[] {
+  let res = typings.slice(0, typings.length - 1);
+  const last = typings[typings.length - 1];
+  res = res.map(collapseTyping);
+  if (!(last instanceof TypingTuple)) {
+    res.push(collapseTyping(last));
+    return res;
+  }
+  return collapseTuples([...res, ...last.tuple]);
+}
+
+/**
+ * Collapses the Typing:
+ * - TypingVararg is converted to its subtype
+ * - TypingTuple is converted to its first type, or the nil typing for an empty tuple
+ * - TypingAlias is converted to its first type
+ * - TypingUnion/TypingIntersection is converted to the first type if it only consists of one
+ * - Repeat this progress until it can't be converted further
+ */
+export function collapseTyping(typing: Typing): Typing {
+  if (typing instanceof TypingTuple) {
+    return collapseTyping(typing.tuple[0] || NIL);
+  } else if (typing instanceof TypingVararg) {
+    return collapseTyping(typing.subtype);
+  } else if (typing instanceof TypingUnion || typing instanceof TypingIntersection) {
+    return typing.types.length === 1 ? collapseTyping(typing.types[0]) : typing;
+  }
+  return typing;
+}
+
 /* Typing data structures */
 
 export abstract class Typing {
   public abstract canCastFrom(typing: Typing): boolean;
   public abstract toString(indent?: number): string;
+  public getField(index: Typing): Typing | null {
+    return null;
+  }
 }
 
 export class TypingTuple extends Typing {
@@ -67,8 +110,15 @@ export class TypingTuple extends Typing {
   public toString(): string {
     return `(${this.tuple.join(', ')})`;
   }
+  public getField(index: Typing) {
+    const first = this.tuple[0];
+    return first ? first.getField(index) : null;
+  }
 }
 
+function isTyping(t: any): t is Typing {
+  return t instanceof Typing;
+}
 export class TypingUnion extends Typing {
   constructor(public types: Typing[] = []) {
     super();
@@ -78,6 +128,10 @@ export class TypingUnion extends Typing {
   }
   public toString(): string {
     return this.types.join(' | ');
+  }
+  public getField(index: Typing) {
+    const fields = this.types.map(t => t.getField(index)).filter(isTyping);
+    return fields.length ? new TypingUnion(fields) : null;
   }
 }
 
@@ -90,6 +144,10 @@ export class TypingIntersection extends Typing {
   }
   public toString(): string {
     return this.types.join(' & ');
+  }
+  public getField(index: Typing) {
+    const fields = this.types.map(t => t.getField(index)).filter(isTyping);
+    return fields.length ? new TypingIntersection(fields) : null;
   }
 }
 
@@ -116,6 +174,22 @@ export class TypingInterface extends Typing {
     res.push('}');
     return res.join('');
   }
+  public getField(index: Typing): Typing | null {
+    index = collapseTyping(index);
+    if (index instanceof TypingConstant && typeof index.value === 'string') {
+      return this.fields[index.value];
+    } else if (index instanceof TypingClass && index.name === 'string') {
+      const fields = Object.values(this.fields);
+      return fields.length ? new TypingUnion(fields) : null;
+    } else if (index instanceof TypingUnion) {
+      const fields = index.types.map(this.getField, this).filter(isTyping);
+      return fields.length ? new TypingUnion(fields) : null;
+    } else if (index instanceof TypingIntersection) {
+      const fields = index.types.map(this.getField, this).filter(isTyping);
+      return fields.length ? new TypingIntersection(fields) : null;
+    }
+    return null;
+  }
 }
 
 export class TypingClass extends TypingInterface {
@@ -133,8 +207,9 @@ export class TypingClass extends TypingInterface {
 }
 
 export class TypingClassObject extends TypingInterface {
-  constructor(typingClass: TypingClass) {
+  constructor(public typingClass: TypingClass) {
     super(TypingClass.name);
+    this.fields = typingClass.classFields;
   }
 }
 
@@ -149,6 +224,7 @@ export class TypingConstant extends Typing {
   public toString(): string {
     return typeof this.value === 'string' ? `'${this.value}'` : `${this.value}`;
   }
+  // TODO: Add fields for string library (getField)
 }
 
 export class TypingAlias extends Typing {
@@ -160,6 +236,9 @@ export class TypingAlias extends Typing {
   }
   public toString(): string {
     return this.name;
+  }
+  public getField(index: Typing) {
+    return this.typing.getField(index);
   }
 }
 
@@ -173,6 +252,14 @@ export class TypingArray extends Typing {
   }
   public toString(): string {
     return `${this.subtype}[]`;
+  }
+  public getField(index: Typing) {
+    if (index instanceof TypingConstant && typeof index === 'number') {
+      return this.subtype.getField(index);
+    } else if (index instanceof TypingClass && index.name === 'number') {
+      return this.subtype.getField(index);
+    }
+    return null;
   }
 }
 
@@ -188,6 +275,14 @@ export class TypingVararg extends Typing {
   }
   public toString(): string {
     return `${this.subtype}...`;
+  }
+  public getField(index: Typing) {
+    if (index instanceof TypingConstant && typeof index === 'number') {
+      return this.subtype.getField(index);
+    } else if (index instanceof TypingClass && index.name === 'number') {
+      return this.subtype.getField(index);
+    }
+    return null;
   }
 }
 
