@@ -1,5 +1,6 @@
 
 import * as ts from './typingStructs';
+import { ScopeVariable } from './parserStructs';
 
 export class FunctionFlow {
   protected typings: { [key: string]: ts.TypingHolder } = {};
@@ -16,6 +17,9 @@ export class FunctionFlow {
     this.typings.boolean = { typing: ts.BOOLEAN, explicit: false };
     this.typings.any = { typing: ts.ANY, explicit: false };
   }
+  public createKey(variable: ScopeVariable) {
+    return `${variable.name}:${variable.local ? variable.scopePosition : 'G'}`;
+  }
   /* Getters and setters */
   public setTyping(name: string, typing: ts.TypingHolder) {
     this.typings[name] = typing;
@@ -29,13 +33,14 @@ export class FunctionFlow {
     }
     return null;
   }
-  public setVariableType(name: string, typing: ts.TypingHolder): void {
-    this.variables[name] = typing;
+  public setVariableType(variable: ScopeVariable, typing: ts.TypingHolder): void {
+    this.variables[this.createKey(variable)] = typing;
   }
-  public getVariableType(name: string): ts.TypingHolder | null {
+  public getVariableType(variable: ScopeVariable): ts.TypingHolder | null {
     let flow: FunctionFlow | undefined = this as FunctionFlow;
+    const key = this.createKey(variable);
     while (flow) {
-      const typing = flow.variables[name];
+      const typing = flow.variables[key];
       if (typing) return typing;
       flow = flow.parent;
     }

@@ -109,11 +109,18 @@ export class Scope {
     scope.parent = this;
     return scope;
   }
+  static createPlaceholder(name: string): ScopeVariable {
+    return {
+      name,
+      local: true,
+      scope: null!,
+    };
+  }
 }
 
 export interface ScopeVariable {
   scope: Scope;
-  scopePosition: number;
+  scopePosition?: number;
   name: string;
   local: boolean;
 }
@@ -272,8 +279,12 @@ export interface BlockExpressionBase extends ExpressionBase {
 }
 
 /** A crafting step for Function */
+export interface FunctionParameterName {
+  name: string;
+}
 export interface FunctionParameter {
   name: string;
+  variable: ScopeVariable;
 }
 export interface FunctionExpr extends BlockExpressionBase {
   type: 'Function';

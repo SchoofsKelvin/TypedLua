@@ -1,5 +1,5 @@
 
-import { FunctionParameter } from './parserStructs';
+import { FunctionParameter, FunctionParameterName } from './parserStructs';
 
 /* Typing "holder" */
 export interface TypingHolder<T extends Typing = Typing> {

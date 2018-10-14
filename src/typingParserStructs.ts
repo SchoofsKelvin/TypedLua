@@ -1,7 +1,7 @@
 
 import { Typing, TypingFunction, TypingHolder, TypingTuple, TypingVararg } from './typingStructs';
 
-import { ExpressionBase, FunctionParameter } from './parserStructs';
+import { ExpressionBase, FunctionParameter, FunctionParameterName } from './parserStructs';
 
 // Add some typing to some parsing things
 
@@ -43,6 +43,10 @@ declare module './parserStructs' {
     typing?: TypingHolder;
     parsedTyping?: ParsedTyping;
   }
+  export interface FunctionParameterName {
+    typing?: TypingHolder;
+    parsedTyping?: ParsedTyping;
+  }
 }
 
 /* Typing stuff for the parser */
@@ -71,7 +75,7 @@ export interface ParsedTypingArray extends ParsedTypingBase {
 }
 export interface ParsedTypingFunction extends ParsedTypingBase {
   type: 'FUNCTION';
-  parameters: FunctionParameter[];
+  parameters: FunctionParameterName[];
   returnTypes: ParsedTypingTuple;
 }
 export interface ParsedTypingVararg extends ParsedTypingBase {

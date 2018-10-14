@@ -168,6 +168,7 @@ export class Parser {
   /* SYNTAX PARSING */
   protected block(locals: string[] = []): [ls.Block, ls.Scope] {
     const scope = this.scope = this.scope!.createSubScope();
+    scope.createVariables(locals);
     const prev = this.currrentBlock;
     const stats: ls.Expression[] = this.currrentBlock = [];
     let stat = this.stat();
@@ -361,10 +362,11 @@ export class Parser {
         const expressions = this.string('=') ?
           assert(this.expList(), 'Expected an expression') : [];
         const scope = this.scope!;
-        const variables = scope.createVariables(vars.map(v => v[0])).map<ls.Variable>(variable => ({
+        const variables = scope.createVariables(vars.map(v => v[0])).map<ls.Variable>((variable, i) => ({
           index, variable,
           type: 'Variable',
           declaration: true,
+          parsedTyping: vars[i][1] || undefined,
         }));
         return this.lastExpression = {
           index, variables, expressions,
@@ -698,11 +700,11 @@ export class Parser {
     }
     return names;
   }
-  protected parList(): ls.FunctionParameter[] {
-    const para: ls.FunctionParameter = null!;
+  protected parList(): ls.FunctionParameterName[] {
+    const para: ls.FunctionParameterName = null!;
     const nameList = this.typedNameList(true);
     if (nameList) {
-      return nameList.map<ls.FunctionParameter>(v => ({
+      return nameList.map<ls.FunctionParameterName>(v => ({
         name: v[0],
         parsedTyping: v[1] || undefined,
       }));
@@ -716,10 +718,10 @@ export class Parser {
   }
   protected lambda(): ls.FunctionExpr | null {
     let index = this.index;
-    let params!: ls.FunctionParameter[];
+    let params!: ls.FunctionParameterName[];
     if (this.string('(')) {
       const argList = this.typedNameList(true) || [];
-      params = argList.map<ls.FunctionParameter>(v => ({
+      params = argList.map<ls.FunctionParameterName>(v => ({
         name: v[0],
         parsedTyping: v[1] || undefined,
       }));
@@ -735,13 +737,17 @@ export class Parser {
       this.index = index;
       return null;
     }
-    const [parameters, parsedVarargTyping] = this.splitVararg(params);
-    const paramNames = parameters.map(p => p.name);
+    const [parameterNames, parsedVarargTyping] = this.splitVararg(params);
+    const paramNames = parameterNames.map(p => p.name);
     if (this.string('{')) {
       const line = this.line();
       const chunk = this.chunk(paramNames);
       const endIndex = this.trim();
       assert(this.string('}'), `Expected \`}\` for lambda (line ${line})`);
+      const parameters = parameterNames.map<ls.FunctionParameter>((param) => ({
+        ...param,
+        variable: chunk.scope.getVariable(param.name)!,
+      }));
       return {
         index, chunk, parameters, endIndex,
         parsedVarargTyping: parsedVarargTyping || undefined,
@@ -753,6 +759,10 @@ export class Parser {
       const chunk = this.chunk(paramNames);
       const endIndex = this.trim();
       assert(this.keyword('end'), `Expected \`end\` for lambda (line ${line})`);
+      const parameters = parameterNames.map<ls.FunctionParameter>((param) => ({
+        ...param,
+        variable: chunk.scope.getVariable(param.name)!,
+      }));
       return {
         index, chunk, parameters, endIndex,
         parsedVarargTyping: parsedVarargTyping || undefined,
@@ -772,6 +782,10 @@ export class Parser {
       type: 'Return',
       expressions: block,
     }] : [];
+    const parameters = parameterNames.map<ls.FunctionParameter>((param) => ({
+      ...param,
+      variable: scope.getVariable(param.name)!,
+    }));
     return {
       index, parameters,
       parsedVarargTyping: parsedVarargTyping || undefined,
@@ -781,7 +795,7 @@ export class Parser {
       chunk: { block, scope },
     };
   }
-  protected splitVararg(params: ls.FunctionParameter[]): [ls.FunctionParameter[], ls.ParsedTypingVararg | null] {
+  protected splitVararg(params: ls.FunctionParameterName[]): [ls.FunctionParameterName[], ls.ParsedTypingVararg | null] {
     params = params.slice(0);
     const last = params.pop();
     if (!last) return [params, null];
@@ -805,13 +819,17 @@ export class Parser {
     const index = this.index;
     assert(this.string('('), 'Expected `(`');
     const params = this.parList();
-    const [parameters, parsedVarargTyping] = this.splitVararg(params);
+    const [parameterNames, parsedVarargTyping] = this.splitVararg(params);
     assert(this.string(')'), 'Expected `)`');
     const parsedReturnTyping = this.string(':') && this.typeTuple() || undefined;
     const line = this.line();
-    const chunk = this.chunk(parameters.map(p => p.name));
+    const chunk = this.chunk(parameterNames.map(p => p.name));
     const endIndex = this.trim();
     assert(this.keyword('end'), `Expected \`end\` for function (line ${line})`);
+    const parameters = parameterNames.map<ls.FunctionParameter>((param) => ({
+      ...param,
+      variable: chunk.scope.getVariable(param.name)!,
+    }));
     return {
       index, chunk, parameters, endIndex, parsedReturnTyping,
       parsedVarargTyping: parsedVarargTyping || undefined,
@@ -857,10 +875,10 @@ export class Parser {
   }
   protected lambdaTyping(): ls.ParsedTypingFunction | null {
     const index = this.index;
-    let parameters!: ls.FunctionParameter[];
+    let parameters!: ls.FunctionParameterName[];
     if (this.string('(')) {
       const argList = this.typedNameList(true) || [];
-      parameters = argList.map<ls.FunctionParameter>(v => ({
+      parameters = argList.map<ls.FunctionParameterName>(v => ({
         name: v[0],
         parsedTyping: v[1] || undefined,
       }));

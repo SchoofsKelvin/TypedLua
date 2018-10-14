@@ -104,7 +104,7 @@ export class AnalyzingWalker extends Walker {
     const any = anyIfMissing ? ts.ANY : null;
     switch (expr.type) {
       case 'Variable':
-        const vt = this.flow.getVariableType(expr.variable.name);
+        const vt = this.flow.getVariableType(expr.variable);
         return vt ? vt.typing : any;
     }
     return expr.typing ? expr.typing.typing : any;
@@ -130,7 +130,7 @@ export class AnalyzingWalker extends Walker {
     if (expr.declaration && expr.parsedTyping) {
       expr.typing = this.generateTyping(expr.parsedTyping, expr.index);
     }
-    const flowTyping = this.flow.getVariableType(variable.name);
+    const flowTyping = this.flow.getVariableType(variable);
     let typing = flowTyping || expr.typing;
     let ignoreImplicit = false;
     // If this is part of an assignment or function declaration, try to "steal" the typing from there if it's not explicitly defined here
@@ -163,7 +163,7 @@ export class AnalyzingWalker extends Walker {
       }
     }
     if (expr.declaration) {
-      this.flow.setVariableType(variable.name, typing);
+      this.flow.setVariableType(variable, typing);
     }
   }
   public walkFunctionCall(expr: ls.FunctionCall) {
@@ -208,7 +208,7 @@ export class AnalyzingWalker extends Walker {
           this.logDiagnosticError(DiagnosticCode.ERROR_CANNOT_CAST, value.index, msg);
         }
       }
-      this.flow.setVariableType(v.variable.name, value.typing);
+      this.flow.setVariableType(v.variable, value.typing);
     });
   }
   public walkFunction(expr: ls.FunctionExpr) {
@@ -238,11 +238,11 @@ export class AnalyzingWalker extends Walker {
     this.flow = new FunctionFlow(this.flow);
     params.forEach((param) => {
       if (param.typing) {
-        this.flow.setVariableType(param.name, param.typing!);
+        this.flow.setVariableType(param.variable, param.typing!);
       } else {
         const msg = `Cannot interfere typing for parameter ${param.name}, assuming any`;
         this.logDiagnosticError(DiagnosticCode.WARNING_IMPLICIT_PARAMETER, expr.index, msg, DiagnosticType.Warning);
-        this.flow.setVariableType(param.name, { typing: ts.ANY, explicit: true });
+        this.flow.setVariableType(param.variable, { typing: ts.ANY, explicit: true });
       }
     });
     // ~~Assign early, so walkVariable can access it if needed~~
