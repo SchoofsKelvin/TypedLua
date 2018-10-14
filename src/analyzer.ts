@@ -190,9 +190,12 @@ export class AnalyzingWalker extends Walker {
     }
     funcType = funcType && ts.collapseTyping(funcType);
     if (!funcType || funcType === ts.ANY) {
+      expr.typing = { typing: new ts.TypingVararg(new ts.TypingArray(ts.ANY)), explicit: false };
       const msg = `Cannot interfere typing for function call, assuming any`;
       return this.logDiagnosticError(DiagnosticCode.WARNING_IMPLICIT_CALL, expr.index, msg, DiagnosticType.Warning);
     } else if (funcType instanceof ts.TypingFunction) {
+      // TODO: Allow multiple function definitions (and pick the right one, if possible, based on parameters)
+      expr.typing = { typing: funcType.returnValues, explicit: true };
       // First calculate some stuff with the passed argument expressions
       const argTypes = args.map(a => this.getTyping(a));
       const argCollapsed = ts.collapseTuples(argTypes);
@@ -239,6 +242,8 @@ export class AnalyzingWalker extends Walker {
         }
       }
     } else {
+      // TODO: Add support for 'never' type (e.g. unreachable code) maybe?
+      expr.typing = { typing: new ts.TypingVararg(new ts.TypingArray(ts.ANY)), explicit: false };
       const msg = `A value of type ${funcType} cannot be called`;
       return this.logDiagnosticError(DiagnosticCode.ERROR_CANNOT_CALL, expr.index, msg, DiagnosticType.Error);
     }
