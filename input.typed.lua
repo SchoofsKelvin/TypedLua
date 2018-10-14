@@ -24,11 +24,18 @@ local b: number | string & Something;
 --]==]
 
 local a = (idk: number) => (idk + 123);
+a(123)
+a('hi')
 
 function test(par: string, ...: string[]): (number, 123)
 	print(par, ...)
 	return 'abc', nil, ...
 end
+
+test('abc')
+test('abc', 'def', 'ghi')
+test(123)
+test('abc', 'def', 123)
 
 function test2(abc)
 	if abc then

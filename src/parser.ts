@@ -212,7 +212,7 @@ export class Parser {
     let expr: ls.Variable | ls.Field | ls.Method = {
       index, variable,
       type: 'Variable',
-      declaration: true,
+      declaration: false,
     };
     this.lastExpression = expr;
     while (this.string('.')) {

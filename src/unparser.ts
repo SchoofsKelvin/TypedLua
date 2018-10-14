@@ -4,7 +4,7 @@ import * as ls from './parserStructs';
 function declaresLocal(expr: ls.Expression | null | undefined) {
   if (!expr) return false;
   if (expr.type !== 'Variable') return false;
-  return expr.declaration;
+  return expr.declaration && expr.variable.local;
 }
 
 function longStringThing(str: string, amount: number) {

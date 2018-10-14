@@ -229,6 +229,14 @@ export class AnalyzingWalker extends Walker {
       params.push(vararg);
     }
     params.forEach(p => p.typing = this.generateTyping(p.parsedTyping, expr.index));
+    // Assign early, so our body can access this, should it be necessary (e.g. recursive functions)
+    expr.typing = {
+      typing: func,
+      explicit: true,
+    };
+    if (variable && variable.type === 'Variable') {
+      this.flow.setVariableType(variable.variable, expr.typing);
+    }
     // Register a new flow with all parameter types, otherwise the parameter don't properly "exist" in the body
     this.flow = new FunctionFlow(this.flow);
     params.forEach((param) => {
@@ -240,11 +248,6 @@ export class AnalyzingWalker extends Walker {
         this.flow.setVariableType(param.variable, { typing: ts.ANY, explicit: true });
       }
     });
-    // ~~Assign early, so walkVariable can access it if needed~~
-    expr.typing = {
-      typing: func,
-      explicit: true,
-    };
     // Ignore comment above, we're gonna set the variable's typing if it exists
     if (variable) variable.typing = expr.typing;
     // Now let's go through the body and such

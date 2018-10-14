@@ -73,13 +73,14 @@ export type UnaryOperation = '-' | '#' | 'not';
 export class Scope {
   public parent?: Scope;
   public variables: ScopeVariable[] = [];
-  public getVariable(name: string): ScopeVariable | null {
-    return this.variables.find(v => v.name === name) || null;
+  public getVariable(name: string, recursive = false): ScopeVariable | null {
+    return this.variables.find(v => v.name === name)
+      || recursive && this.parent && this.parent.getVariable(name, true)
+      || null;
   }
   public calculateVariable(name: string): ScopeVariable {
-    return this.variables.find(v => v.name === name)
-    || this.parent && this.parent.getVariable(name)
-    || { name, local: false, scope: this, scopePosition: -1 };
+    return this.getVariable(name, true)
+    || { name, local: false, scope: this };
   }
   public insertVariable(name: string, scopePosition: number) {
     const variable: ScopeVariable = {
