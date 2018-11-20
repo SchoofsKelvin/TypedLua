@@ -41,22 +41,6 @@ declare module './parserStructs' {
     typing?: TypingHolder;
     parsedTyping?: ParsedTyping;
   }
-
-  export enum Keyword {
-    class = 'CLASS',
-    extends = 'EXTENDS',
-    implements = 'IMPLEMENTS',
-  }
-
-  export interface ExpressionTypes {
-    Class: Class;
-  }
-}
-
-export interface Class extends ls.ExpressionBase {
-  type: 'Class';
-  typing?: TypingHolder<TypingClass>;
-  parsedTyping?: ParsedTyping;
 }
 
 /* Typing stuff for the parser */

@@ -24,6 +24,7 @@ export interface IWalker {
   walkBrackets: walkType<ls.Brackets>;
   walkConstant: walkType<ls.Constant>;
   walkTable: walkType<ls.Table>;
+  walkClass: walkType<ls.ClassExpr>;
   walkFunction: walkType<ls.FunctionExpr>;
   walkComment: walkType<ls.Comment>;
 }
@@ -106,6 +107,10 @@ export abstract class Walker implements IWalker {
       if (key) this.walkExpression(key);
       this.walkExpression(value);
     });
+  }
+  public walkClass(expr: ls.ClassExpr): void {
+    if (expr.variable) this.walkExpression(expr.variable);
+    expr.methods.forEach(this.walkExpression, this);
   }
   public walkFunction(expr: ls.FunctionExpr): void {
     if (expr.variable) this.walkExpression(expr.variable);

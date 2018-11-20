@@ -214,7 +214,7 @@ export class AnalyzingWalker extends Walker {
   }
   public walkReturn(expr: ls.Return) {
     super.walkReturn(expr);
-    expr.returnTypes = expr.expressions.map(e => e.typing!.typing);
+    expr.returnTypes = expr.expressions.map(e => e.typing ? e.typing.typing : ts.ANY); // maybe not the best thing to do?
     interface FuncPS { returns: ls.Return[]; }
     const func = this.findLastSegment<FuncPS>(s => s.expression.type === 'Function');
     if (!func) throw new Error('TODO: Handle return statement in main chunk');

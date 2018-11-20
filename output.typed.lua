@@ -57,3 +57,30 @@ end--[[test2(abc: any) => (number | string)]]
 
 local a--[['not abc']] = "abc"--[[string]]
 local b--[[string]] = 123--[[number]]
+
+do local __ctor local __class = setmetatable({}, { __call = function(_, ...) local self = setmetatable({}, setmetatable({ __index = test }, { __index = test })) return __ctor and __ctor(self, ...) or self end });test = __class;
+	
+	function __class:testMethod()
+		print("hi"--[[string]])
+		return"abc"--[[string]]
+	end--[[testMethod() => (string)]]
+	
+	function __class:__tostring()
+		return self.something
+	end--[[__tostring() => (any)]]
+	
+	function __ctor(msg)
+		self.something = msg
+		print("construct test class"--[[string]])
+	end--[[__ctor(msg: string) => ()]]
+
+end
+
+do local __ctor local __class = setmetatable({}, { __index = test, __call = function(_, ...) local self = setmetatable({}, setmetatable({ __index = inheritance }, { __index = inheritance })) return __ctor and __ctor(self, ...) or self end });inheritance = __class;
+
+end
+
+local obj = test("heyo mayo"--[[string]])
+print(obj)
+print(type(obj))
+print(obj:testMethod())

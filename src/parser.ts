@@ -336,6 +336,26 @@ export class Parser {
           endIndex: endIndex2,
         };
       }
+      case ls.Keyword.class: {
+        const index = this.trim();
+        const name = assert(this.name(), 'Expected a name');
+        const scope = this.scope as ls.Scope;
+        const expr: ls.Variable | ls.Field | ls.Method = {
+          index, name, scope,
+          type: 'Variable',
+          scopePosition: scope.locals.length,
+          declaration: false,
+        };
+        let base: string | null = null;
+        if (this.keyword('extends')) {
+          base = assert(this.name(), 'Expected a name');
+        }
+        const classdef = this.classBody(name);
+        classdef.base = base;
+        classdef.variable = expr;
+        classdef.index = index;
+        return this.lastExpression = classdef;
+      }
       case ls.Keyword.function: {
         const name = assert(this.functionName(), 'Expected a name');
         const func = this.funcBody();
@@ -361,6 +381,25 @@ export class Parser {
             declaration: true,
           };
           return this.lastExpression = func;
+        } else if (this.keyword('class')) {
+          const name = assert(this.name(), 'Expected a name');
+          const locals = (this.scope as ls.Scope).locals;
+          locals.push(name);
+          let base: string | null = null;
+          if (this.keyword('extends')) {
+            base = assert(this.name(), 'Expected a name');
+          }
+          const classdef = this.classBody(name);
+          classdef.index = index;
+          classdef.base = base;
+          classdef.variable = {
+            index, name,
+            type: 'Variable',
+            scope: this.scope as ls.Scope,
+            scopePosition: locals.length,
+            declaration: true,
+          };
+          return this.lastExpression = classdef;
         }
         const vars = assert(this.typedNameList(), 'Expected a name');
         const expressions = this.string('=') ?
@@ -809,6 +848,99 @@ export class Parser {
       params.push(last);
     }
     return [params, null];
+  }
+  protected method(className: string): ls.FunctionExpr | null {
+    const index = this.trim();
+    const name = this.name();
+    if (name) {
+      assert(this.string('('), 'Expected `(`');
+      const params = this.parList();
+      assert(this.string(')'), 'Expected `)`');
+      const line = this.line();
+      const chunk = this.chunk();
+      const endIndex = this.trim();
+      assert(this.keyword('end'), `Expected \`end\` for function (line ${line})`);
+      const [parameters, parsedVarargTyping] = this.splitVararg(params);
+      const scope = this.scope as ls.Scope;
+      let variable: ls.Method | ls.Variable = this.lastExpression = (name == className ? {
+        index, name: "__ctor", scope,
+        type: 'Variable',
+        scopePosition: scope.locals.length,
+        declaration: false,
+      } : {
+        index, name,
+        type: 'Method',
+        base: {
+          index, name: "__class", scope,
+          type: 'Variable',
+          scopePosition: scope.locals.length,
+          declaration: false,
+        } as ls.Variable,
+      });
+      return {
+        type: 'Function', parameters,
+        parsedVarargTyping: parsedVarargTyping || undefined,
+        chunk, variable, index, endIndex, local: false
+      } as ls.FunctionExpr;
+    } else {
+      return null;
+    }
+  }
+  /*protected ctor(className: string): ls.FunctionExpr | null {
+    const index = this.trim();
+    if (!this.keyword('new')) return null;
+    const name = this.string(className);
+    assert(this.string('('), 'Expected `(`');
+    const params = this.parList();
+    params.unshift({ name: "self" } as ls.FunctionParameter);
+    assert(this.string(')'), 'Expected `)`');
+    const line = this.line();
+    const chunk = this.chunk();
+    const endIndex = this.trim();
+    assert(this.keyword('end'), `Expected \`end\` for constructor (line ${line})`);
+    const [parameters, parsedVarargTyping] = this.splitVararg(params);
+    const scope = this.scope as ls.Scope;
+    let variable: ls.Variable = this.lastExpression = {
+      index, name: "__ctor", scope,
+      type: 'Variable',
+      scopePosition: scope.locals.length,
+      declaration: false,
+    };
+    return {
+      type: 'Function', parameters,
+      parsedVarargTyping: parsedVarargTyping || undefined,
+      chunk, variable, index, endIndex, local: false
+    } as ls.FunctionExpr;
+  }*/
+  protected classBody(className: string): ls.ClassExpr {
+    const index = this.trim();
+    const line = this.line();
+    
+    const scope: ls.Scope = this.scope = {
+      parent: this.scope,
+      locals: [ 'self' ],
+      upvalues: [],
+    };
+
+    const prevb = this.currrentBlock;
+    const methods: ls.FunctionExpr[] = this.currrentBlock = [];
+    let method = this.method(className);
+    while (method) {
+      methods.push(method);
+      this.string(';');
+      method = /*this.ctor(className) ||*/ this.method(className);
+    }
+    this.currrentBlock = prevb;
+    this.scope = scope.parent;
+    
+    //chunk.block = methods;
+
+    const endIndex = this.trim();
+    assert(this.keyword('end'), `Expected \`end\` for class (line ${line})`);
+    return {
+      index, methods, scope, endIndex, base: null,
+      type: 'Class',
+    };
   }
   protected funcBody(): ls.FunctionExpr {
     const index = this.index;

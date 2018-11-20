@@ -37,3 +37,30 @@ end
 
 local a: 'not abc' = 'abc';
 local b: string = 123;
+
+class test
+
+	testMethod()
+		print("hi")
+		return 'abc'
+	end
+
+	__tostring()
+		return self.something
+	end
+
+	test(msg: string)
+		self.something = msg
+		print("construct test class")
+	end
+
+end
+
+class inheritance extends test
+
+end
+
+local obj = test("heyo mayo")
+print(obj)
+print(type(obj))
+print(obj:testMethod())

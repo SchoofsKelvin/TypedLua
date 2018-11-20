@@ -266,6 +266,28 @@ export class Unparser {
         this.currentLine += '}';
         break;
       }
+      case 'Class': {
+        if (declaresLocal(expr.variable)) {
+          this.safeAppend('local ');
+          this.unparseExpression(expr.variable as ls.Variable);
+        }
+        this.safeAppend('do local __ctor local __class = setmetatable({}, { ');
+        if (expr.base) {
+          this.currentLine += '__index = ' + expr.base + ', ';
+        }
+        this.currentLine += '__call = function(_, ...) local self = setmetatable({}, setmetatable({ __index = ';
+        this.unparseExpression(expr.variable as ls.Variable);
+        this.currentLine += ' }, { __index = ';
+        this.unparseExpression(expr.variable as ls.Variable);
+        this.currentLine += ' })) return __ctor and __ctor(self, ...) or self end });';
+        this.unparseExpression(expr.variable as ls.Variable);
+        this.currentLine += ' = __class;';
+        this.indent += 1;
+        expr.methods.forEach(this.unparseExpression, this);
+        this.indent -= 1;
+        this.ensureLine(this.line(expr.endIndex));
+        return this.safeAppend('end');
+      }
       case 'Function': {
         if (declaresLocal(expr.variable)) {
           this.safeAppend('local ');

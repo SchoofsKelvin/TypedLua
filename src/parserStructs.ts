@@ -16,6 +16,7 @@ export enum Keyword {
   else = 'ELSE',
   for = 'FOR',
   in = 'IN',
+  class = 'CLASS',
   function = 'FUNCTION',
   local = 'LOCAL',
   return = 'RETURN',
@@ -26,6 +27,8 @@ export enum Keyword {
   not = 'NOT',
   and = 'AND',
   or = 'OR',
+  //new = 'NEW',
+  extends = 'EXTENDS',
 }
 
 export type BinaryOperation = '^'
@@ -103,6 +106,7 @@ export interface ExpressionTypes {
   Table: Table;
   Function: FunctionExpr;
   Comment: Comment;
+  Class: ClassExpr;
 }
 
 export type ExpressionType = keyof ExpressionTypes;
@@ -252,4 +256,12 @@ export interface Comment extends ExpressionBase {
   type: 'Comment';
   long: boolean;
   text: string;
+}
+
+export interface ClassExpr extends BlockExpressionBase {
+  type: 'Class';
+  base: string | null;
+  methods: FunctionExpr[];
+  scope: Scope;
+  variable?: Variable;
 }
