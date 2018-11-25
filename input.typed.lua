@@ -58,9 +58,14 @@ end
 
 class inheritance extends test
 
+	testMethod()
+		print("ret", base.testMethod(self))
+		return 'def'
+	end
+
 end
 
-local obj = test("heyo mayo")
+local obj = inheritance("heyo mayo")
 print(obj)
 print(type(obj))
 print(obj:testMethod())

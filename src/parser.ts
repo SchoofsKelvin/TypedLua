@@ -855,6 +855,7 @@ export class Parser {
     if (name) {
       assert(this.string('('), 'Expected `(`');
       const params = this.parList();
+      if (name == className) params.unshift({ name: "self" } as ls.FunctionParameter);
       assert(this.string(')'), 'Expected `)`');
       const line = this.line();
       const chunk = this.chunk();
@@ -862,11 +863,15 @@ export class Parser {
       assert(this.keyword('end'), `Expected \`end\` for function (line ${line})`);
       const [parameters, parsedVarargTyping] = this.splitVararg(params);
       const scope = this.scope as ls.Scope;
-      let variable: ls.Method | ls.Variable = this.lastExpression = (name == className ? {
-        index, name: "__ctor", scope,
-        type: 'Variable',
-        scopePosition: scope.locals.length,
-        declaration: false,
+      let variable: ls.Method | ls.Field = this.lastExpression = (name == className ? {
+        index, name: "__ctor",
+        type: 'Field',
+        base: {
+          index, name: "__class", scope,
+          type: 'Variable',
+          scopePosition: scope.locals.length,
+          declaration: false,
+        } as ls.Variable,
       } : {
         index, name,
         type: 'Method',
